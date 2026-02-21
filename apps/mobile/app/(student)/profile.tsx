@@ -1,12 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Alert, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as SecureStore from 'expo-secure-store';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
+
+const AVATAR_KEY = 'student_avatar_uri';
 
 export default function StudentProfile() {
   const { user, logout } = useAuthStore();
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+
+  // Load persisted avatar on mount
+  useEffect(() => {
+    SecureStore.getItemAsync(AVATAR_KEY).then((uri) => {
+      if (uri) setAvatarUri(uri);
+    });
+  }, []);
 
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -21,7 +31,9 @@ export default function StudentProfile() {
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]?.uri) {
-      setAvatarUri(result.assets[0].uri);
+      const uri = result.assets[0].uri;
+      setAvatarUri(uri);
+      await SecureStore.setItemAsync(AVATAR_KEY, uri);
     }
   };
 

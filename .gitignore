@@ -43,7 +43,7 @@ lerna-debug.log*
 
 # ─── AI Assistant ────────────────────────────────────────────
 # Agent skills, workflows and local AI config — not part of the project
-.agent/
+#.agent/
 
 # ─── OS & Editor ─────────────────────────────────────────────
 .DS_Store

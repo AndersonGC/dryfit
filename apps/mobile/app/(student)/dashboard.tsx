@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,18 +16,26 @@ import { useActiveWorkout, useCompleteWorkout } from '../../hooks/useWorkouts';
 
 const DAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-function get5Days(centerDate: Date) {
-  return Array.from({ length: 5 }, (_, i) => {
-    const d = new Date(centerDate);
-    d.setDate(centerDate.getDate() - 2 + i);
+// Generates a range of days centered on today for horizontal scroll
+const DAYS_BEFORE = 30;
+const DAYS_AFTER = 60;
+const TODAY = new Date();
+
+function buildDays() {
+  return Array.from({ length: DAYS_BEFORE + DAYS_AFTER + 1 }, (_, i) => {
+    const d = new Date(TODAY);
+    d.setDate(TODAY.getDate() - DAYS_BEFORE + i);
     return {
       date: new Date(d),
       day: DAY_LABELS[d.getDay()],
       num: d.getDate(),
-      isToday: d.toDateString() === new Date().toDateString(),
+      isToday: d.toDateString() === TODAY.toDateString(),
     };
   });
 }
+
+const ALL_DAYS = buildDays();
+const TODAY_INDEX = DAYS_BEFORE;
 
 function isSameDay(a: Date, b: Date) {
   return a.toDateString() === b.toDateString();
@@ -40,12 +48,21 @@ export default function StudentDashboard() {
   const { width } = useWindowDimensions();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const calendarRef = useRef<FlatList>(null);
+
+  // Fixed item width: show ~5 days at a time with gap
+  const DAY_GAP = 4;
+  const dayItemWidth = (width - 40 - DAY_GAP * 4) / 5;
+
+  // Scroll to today when calendar mounts
+  useEffect(() => {
+    setTimeout(() => {
+      calendarRef.current?.scrollToIndex({ index: TODAY_INDEX, animated: false, viewPosition: 0.5 });
+    }, 100);
+  }, []);
 
   const workout = workoutRes?.data?.workout;
   const monthName = selectedDate.toLocaleString('pt-BR', { month: 'long' });
-  const dayItemWidth = (width - 40 - 16) / 5; // padding 20*2, gaps 4*4=16
-
-  const days = get5Days(selectedDate);
 
   const handleComplete = useCallback(async () => {
     if (!workout) return;
@@ -108,12 +125,22 @@ export default function StudentDashboard() {
           </View>
 
           <FlatList
-            data={days}
+            ref={calendarRef}
+            data={ALL_DAYS}
             keyExtractor={(item) => item.date.toDateString()}
             horizontal
             showsHorizontalScrollIndicator={false}
-            scrollEnabled={false}
-            contentContainerStyle={{ gap: 4 }}
+            contentContainerStyle={{ gap: DAY_GAP, paddingHorizontal: 0 }}
+            getItemLayout={(_, index) => ({
+              length: dayItemWidth + DAY_GAP,
+              offset: (dayItemWidth + DAY_GAP) * index,
+              index,
+            })}
+            onScrollToIndexFailed={({ index }) => {
+              setTimeout(() => {
+                calendarRef.current?.scrollToIndex({ index, animated: false, viewPosition: 0.5 });
+              }, 200);
+            }}
             renderItem={({ item }) => {
               const isSelected = isSameDay(item.date, selectedDate);
               const hasWorkout = item.isToday && !!workout;
@@ -121,21 +148,28 @@ export default function StudentDashboard() {
                 <TouchableOpacity
                   onPress={() => setSelectedDate(item.date)}
                   activeOpacity={0.8}
-                  style={{ width: dayItemWidth }}
-                  className={`items-center justify-center rounded-2xl py-4 ${isSelected ? 'bg-primary' : 'bg-[#1c1f26] border border-zinc-800'
-                    }`}
+                  style={{
+                    width: dayItemWidth,
+                    height: 88, // fixed height — prevents layout shift when dot is absent
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 16,
+                    backgroundColor: isSelected ? '#b30f15' : '#1c1f26',
+                    borderWidth: isSelected ? 0 : 1,
+                    borderColor: '#27272a',
+                  }}
                 >
-                  <Text className={`text-xs mb-1 font-medium ${isSelected ? 'text-white/80' : 'text-zinc-400'}`}>
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: isSelected ? 'rgba(255,255,255,0.8)' : '#a1a1aa', marginBottom: 2 }}>
                     {item.day}
                   </Text>
-                  <Text className={`text-xl font-black ${isSelected ? 'text-white' : 'text-white'}`}>
+                  <Text style={{ fontSize: 20, fontWeight: '900', color: '#fff' }}>
                     {item.num}
                   </Text>
-                  {hasWorkout && (
-                    <View
-                      className={`w-1.5 h-1.5 rounded-full mt-1 ${isSelected ? 'bg-white' : 'bg-primary'}`}
-                    />
-                  )}
+                  {/* Dot — always rendered with fixed space to prevent layout shift */}
+                  <View style={{
+                    width: 6, height: 6, borderRadius: 3, marginTop: 4,
+                    backgroundColor: hasWorkout ? (isSelected ? '#fff' : '#b30f15') : 'transparent',
+                  }} />
                 </TouchableOpacity>
               );
             }}
