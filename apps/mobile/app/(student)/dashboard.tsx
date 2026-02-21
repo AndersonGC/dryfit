@@ -16,26 +16,32 @@ import { useActiveWorkout, useCompleteWorkout } from '../../hooks/useWorkouts';
 
 const DAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-// Generates a range of days centered on today for horizontal scroll
-const DAYS_BEFORE = 30;
-const DAYS_AFTER = 60;
 const TODAY = new Date();
 
 function buildDays() {
-  return Array.from({ length: DAYS_BEFORE + DAYS_AFTER + 1 }, (_, i) => {
+  const currentDay = TODAY.getDay(); // 0 is Sunday
+  // We want Monday (1) to be the first day of the week, so we calculate days from last Monday
+  const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+
+  // Go back 4 weeks (28 days) exactly to a Monday
+  const daysToSubtract = 28 + daysFromMonday;
+
+  const days = [];
+  // Generate 9 full weeks (63 days)
+  for (let i = 0; i < 63; i++) {
     const d = new Date(TODAY);
-    d.setDate(TODAY.getDate() - DAYS_BEFORE + i);
-    return {
+    d.setDate(TODAY.getDate() - daysToSubtract + i);
+    days.push({
       date: new Date(d),
       day: DAY_LABELS[d.getDay()],
       num: d.getDate(),
       isToday: d.toDateString() === TODAY.toDateString(),
-    };
-  });
+    });
+  }
+  return { days, todayIndex: daysToSubtract };
 }
 
-const ALL_DAYS = buildDays();
-const TODAY_INDEX = DAYS_BEFORE;
+const { days: ALL_DAYS, todayIndex: TODAY_INDEX } = buildDays();
 
 function isSameDay(a: Date, b: Date) {
   return a.toDateString() === b.toDateString();
@@ -50,14 +56,15 @@ export default function StudentDashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const calendarRef = useRef<FlatList>(null);
 
-  // Fixed item width: show ~5 days at a time with gap
-  const DAY_GAP = 4;
-  const dayItemWidth = (width - 40 - DAY_GAP * 4) / 5;
+  // The calendar shows exactly 7 days without gap for the container calculation,
+  // we handle the spacing using a wrapper.
+  const dayItemWidth = (width - 40) / 7;
 
-  // Scroll to today when calendar mounts
+  // Scroll to the start of the current week when calendar mounts
   useEffect(() => {
     setTimeout(() => {
-      calendarRef.current?.scrollToIndex({ index: TODAY_INDEX, animated: false, viewPosition: 0.5 });
+      const currentWeekIndex = Math.floor(TODAY_INDEX / 7) * 7;
+      calendarRef.current?.scrollToIndex({ index: currentWeekIndex, animated: false, viewPosition: 0 });
     }, 100);
   }, []);
 
@@ -117,11 +124,15 @@ export default function StudentDashboard() {
           </TouchableOpacity>
         </View>
 
-        {/* Calendário — 5 dias */}
+        {/* Calendário — Semanal */}
         <View className="mb-8">
           <View className="flex-row items-center justify-between mb-4">
             <Text className="font-bold text-lg text-white">Calendário</Text>
-            <Text className="text-primary text-sm font-medium capitalize">{monthName}</Text>
+            <View className="flex-row items-center gap-1">
+              <Ionicons name="chevron-back" size={14} color="#71717a" />
+              <Text className="text-zinc-300 text-sm font-medium capitalize">{monthName}</Text>
+              <Ionicons name="chevron-forward" size={14} color="#71717a" />
+            </View>
           </View>
 
           <FlatList
@@ -130,15 +141,18 @@ export default function StudentDashboard() {
             keyExtractor={(item) => item.date.toDateString()}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: DAY_GAP, paddingHorizontal: 0 }}
+            snapToInterval={width - 40}
+            snapToAlignment="start"
+            decelerationRate="fast"
+            contentContainerStyle={{ paddingHorizontal: 0 }}
             getItemLayout={(_, index) => ({
-              length: dayItemWidth + DAY_GAP,
-              offset: (dayItemWidth + DAY_GAP) * index,
+              length: dayItemWidth,
+              offset: dayItemWidth * index,
               index,
             })}
             onScrollToIndexFailed={({ index }) => {
               setTimeout(() => {
-                calendarRef.current?.scrollToIndex({ index, animated: false, viewPosition: 0.5 });
+                calendarRef.current?.scrollToIndex({ index, animated: false, viewPosition: 0 });
               }, 200);
             }}
             renderItem={({ item }) => {
@@ -150,26 +164,41 @@ export default function StudentDashboard() {
                   activeOpacity={0.8}
                   style={{
                     width: dayItemWidth,
-                    height: 88, // fixed height — prevents layout shift when dot is absent
+                    height: 80,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    borderRadius: 16,
-                    backgroundColor: isSelected ? '#b30f15' : '#1c1f26',
-                    borderWidth: isSelected ? 0 : 1,
-                    borderColor: '#27272a',
                   }}
                 >
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: isSelected ? 'rgba(255,255,255,0.8)' : '#a1a1aa', marginBottom: 2 }}>
-                    {item.day}
-                  </Text>
-                  <Text style={{ fontSize: 20, fontWeight: '900', color: '#fff' }}>
-                    {item.num}
-                  </Text>
-                  {/* Dot — always rendered with fixed space to prevent layout shift */}
-                  <View style={{
-                    width: 6, height: 6, borderRadius: 3, marginTop: 4,
-                    backgroundColor: hasWorkout ? (isSelected ? '#fff' : '#b30f15') : 'transparent',
-                  }} />
+                  <View
+                    style={{
+                      width: 44,
+                      height: 72,
+                      borderRadius: 22, // Formato "Pill"
+                      backgroundColor: isSelected ? '#b30f15' : 'transparent',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingTop: 8,
+                      paddingBottom: 8,
+                      shadowColor: isSelected ? '#b30f15' : 'transparent',
+                      shadowOpacity: isSelected ? 0.4 : 0,
+                      shadowRadius: 8,
+                      shadowOffset: { width: 0, height: 4 },
+                      elevation: isSelected ? 8 : 0,
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: isSelected ? 'rgba(255,255,255,0.9)' : '#71717a', marginBottom: 6 }}>
+                      {item.day}
+                    </Text>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: isSelected ? '#fff' : '#e4e4e7' }}>
+                      {item.num}
+                    </Text>
+                    {hasWorkout && !isSelected && (
+                      <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#b30f15', marginTop: 4, position: 'absolute', bottom: 6 }} />
+                    )}
+                    {hasWorkout && isSelected && (
+                      <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#fff', marginTop: 4, position: 'absolute', bottom: 6 }} />
+                    )}
+                  </View>
                 </TouchableOpacity>
               );
             }}
