@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { api } from '../lib/api';
 import { storage } from '../lib/storage';
+import { queryClient } from '../lib/queryClient';
 import type { User } from '@dryfit/types';
 
 interface AuthState {
@@ -47,6 +48,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     await storage.clear();
+    queryClient.clear();
     set({ user: null, token: null, isAuthenticated: false });
   },
 

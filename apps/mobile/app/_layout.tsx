@@ -6,14 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuthStore } from '../store/auth.store';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      staleTime: 1000 * 60,
-    },
-  },
-});
+import { queryClient } from '../lib/queryClient';
 
 function AuthGate() {
   const { isAuthenticated, isLoading, user, loadStoredAuth } = useAuthStore();

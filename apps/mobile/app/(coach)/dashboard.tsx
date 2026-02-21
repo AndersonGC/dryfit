@@ -50,8 +50,8 @@ const StudentCard = ({ student, isSelected, onSelect, onBuild }: StudentCardProp
     onPress={onSelect}
     activeOpacity={0.85}
     className={`p-4 rounded-3xl flex-row items-center justify-between mb-4 border ${isSelected
-        ? 'bg-primary border-primary'
-        : 'bg-zinc-900 border-zinc-800'
+      ? 'bg-primary border-primary'
+      : 'bg-zinc-900 border-zinc-800'
       }`}
     style={isSelected ? { shadowColor: '#b30f15', shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 } : {}}
   >
@@ -149,7 +149,7 @@ export default function CoachDashboard() {
         studentId: selectedStudent.id,
         title: workoutTitle.trim(),
         type: workoutType,
-        date: formatDate(workoutDate),
+        scheduledAt: `${formatDate(workoutDate)}T12:00:00.000Z`,
         exercises: validExercises.map((e, i) => ({
           name: e.name,
           sets: Number(e.sets),

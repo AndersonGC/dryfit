@@ -16,10 +16,14 @@ import { useActiveWorkout, useCompleteWorkout } from '../../hooks/useWorkouts';
 
 const DAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-// Generates a range of days centered on today for horizontal scroll
 const DAYS_BEFORE = 30;
 const DAYS_AFTER = 60;
 const TODAY = new Date();
+
+/** Returns YYYY-MM-DD in UTC for a given Date */
+function toUTCDateString(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
 
 function buildDays() {
   return Array.from({ length: DAYS_BEFORE + DAYS_AFTER + 1 }, (_, i) => {
@@ -43,12 +47,16 @@ function isSameDay(a: Date, b: Date) {
 
 export default function StudentDashboard() {
   const { user } = useAuthStore();
-  const { data: workoutRes, isLoading } = useActiveWorkout();
-  const completeWorkout = useCompleteWorkout();
   const { width } = useWindowDimensions();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const calendarRef = useRef<FlatList>(null);
+
+  // Date key in UTC format — drives both the query and the cache key
+  const selectedDateKey = toUTCDateString(selectedDate);
+
+  const { data: workoutRes, isLoading } = useActiveWorkout(selectedDateKey);
+  const completeWorkout = useCompleteWorkout(selectedDateKey);
 
   // Fixed item width: show ~5 days at a time with gap
   const DAY_GAP = 4;
@@ -63,6 +71,10 @@ export default function StudentDashboard() {
 
   const workout = workoutRes?.data?.workout;
   const monthName = selectedDate.toLocaleString('pt-BR', { month: 'long' });
+
+  // Show workout card whenever there IS a workout for the selected date —
+  // regardless of status (PENDING or COMPLETED) or whether it's today.
+  const showWorkout = !!workout;
 
   const handleComplete = useCallback(async () => {
     if (!workout) return;
@@ -88,9 +100,6 @@ export default function StudentDashboard() {
     if (h < 18) return 'Boa tarde';
     return 'Boa noite';
   };
-
-  // Workout for the selected day (check by date if available, else use active workout for today)
-  const showWorkout = workout && isSameDay(selectedDate, new Date());
 
   return (
     <View className="flex-1 bg-[#0f1115]">
@@ -120,7 +129,6 @@ export default function StudentDashboard() {
         {/* Calendário — 5 dias */}
         <View className="mb-8">
           <View className="flex-row items-center justify-between mb-4">
-            <Text className="font-bold text-lg text-white">Calendário</Text>
             <Text className="text-primary text-sm font-medium capitalize">{monthName}</Text>
           </View>
 
@@ -143,14 +151,13 @@ export default function StudentDashboard() {
             }}
             renderItem={({ item }) => {
               const isSelected = isSameDay(item.date, selectedDate);
-              const hasWorkout = item.isToday && !!workout;
               return (
                 <TouchableOpacity
                   onPress={() => setSelectedDate(item.date)}
                   activeOpacity={0.8}
                   style={{
                     width: dayItemWidth,
-                    height: 88, // fixed height — prevents layout shift when dot is absent
+                    height: 88,
                     alignItems: 'center',
                     justifyContent: 'center',
                     borderRadius: 16,
@@ -165,10 +172,10 @@ export default function StudentDashboard() {
                   <Text style={{ fontSize: 20, fontWeight: '900', color: '#fff' }}>
                     {item.num}
                   </Text>
-                  {/* Dot — always rendered with fixed space to prevent layout shift */}
+                  {/* Dot: visible space reserved to prevent layout shift */}
                   <View style={{
                     width: 6, height: 6, borderRadius: 3, marginTop: 4,
-                    backgroundColor: hasWorkout ? (isSelected ? '#fff' : '#b30f15') : 'transparent',
+                    backgroundColor: 'transparent', // dots removed — date filtering handles this
                   }} />
                 </TouchableOpacity>
               );
@@ -192,9 +199,9 @@ export default function StudentDashboard() {
           ) : !showWorkout ? (
             <View className="bg-[#1c1f26] border border-zinc-800 rounded-3xl p-8 items-center">
               <Ionicons name="barbell-outline" size={48} color="#3f3f46" />
-              <Text className="text-white font-bold mt-4 text-lg">Sem treino hoje</Text>
+              <Text className="text-white font-bold mt-4 text-lg">Sem treino nessa data</Text>
               <Text className="text-zinc-500 text-sm mt-2 text-center">
-                Seu coach ainda não enviou treino para hoje. Descanse bem!
+                Seu coach ainda não enviou treino para esse dia. Descanse bem!
               </Text>
             </View>
           ) : (
@@ -208,7 +215,9 @@ export default function StudentDashboard() {
                     <Text className="text-[10px] font-bold text-white uppercase tracking-wider">{workout.type}</Text>
                   </View>
                   <Text className="text-2xl font-bold text-white">{workout.title}</Text>
-                  <Text className="text-zinc-300 text-sm mt-1">Enviado pelo seu Coach</Text>
+                  <Text className="text-zinc-300 text-sm mt-1">
+                    {workout.coach?.name ? `Enviado por ${workout.coach.name}` : 'Enviado pelo seu Coach'}
+                  </Text>
                 </View>
                 <View className="absolute top-4 right-4 z-20 bg-white/10 rounded-full px-3 py-1 flex-row items-center gap-1">
                   <Ionicons name="flame" size={14} color="white" />
@@ -219,11 +228,11 @@ export default function StudentDashboard() {
                 </View>
               </View>
 
-              {/* Exercícios */}
+              {/* Completion banner — shown whenever status is COMPLETED */}
               {workout.status === 'COMPLETED' && (
                 <View className="bg-green-500/10 border border-green-500/30 rounded-2xl p-3 mb-4 flex-row items-center gap-2">
                   <Ionicons name="checkmark-circle" size={20} color="#22c55e" />
-                  <Text className="text-green-400 font-bold">Treino concluído hoje! 🎉</Text>
+                  <Text className="text-green-400 font-bold">Treino concluído! 🎉</Text>
                 </View>
               )}
 
@@ -271,7 +280,7 @@ export default function StudentDashboard() {
         </View>
       </ScrollView>
 
-      {/* Floating Action — START WORKOUT */}
+      {/* Floating Action — CONCLUIR TREINO (only visible when workout is PENDING) */}
       {showWorkout && workout.status !== 'COMPLETED' && (
         <View className="absolute bottom-28 left-0 right-0 items-center pointer-events-none" style={{ pointerEvents: 'box-none' }}>
           <TouchableOpacity
@@ -292,7 +301,7 @@ export default function StudentDashboard() {
               <ActivityIndicator color="white" size="small" />
             ) : (
               <>
-                <Ionicons name="play" size={20} color="white" />
+                <Ionicons name="checkmark-circle" size={20} color="white" />
                 <Text className="text-white font-bold text-base tracking-wide">CONCLUIR TREINO</Text>
               </>
             )}

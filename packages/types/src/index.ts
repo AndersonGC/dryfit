@@ -36,6 +36,8 @@ export interface Workout {
   scheduledAt: string;
   completedAt?: string;
   createdAt: string;
+  // Included by the API when fetching for the student view
+  coach?: { name: string };
 }
 
 // API Request/Response types
@@ -60,5 +62,6 @@ export interface CreateWorkoutRequest {
   title: string;
   type: WorkoutType;
   studentId: string;
+  scheduledAt?: string; // ISO 8601 — allows future scheduling
   exercises: Omit<Exercise, 'id' | 'workoutId'>[];
 }

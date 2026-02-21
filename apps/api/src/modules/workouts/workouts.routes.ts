@@ -18,6 +18,7 @@ export async function workoutsRoutes(fastify: FastifyInstance) {
       title: string;
       type: 'STRENGTH' | 'WOD' | 'HIIT' | 'CUSTOM';
       studentId: string;
+      scheduledAt?: string;
       exercises: Array<{
         name: string;
         sets?: number;
@@ -38,6 +39,8 @@ export async function workoutsRoutes(fastify: FastifyInstance) {
           title: { type: 'string', minLength: 1 },
           type: { type: 'string', enum: ['STRENGTH', 'WOD', 'HIIT', 'CUSTOM'] },
           studentId: { type: 'string' },
+          // ISO 8601 date string — e.g. "2026-02-25T14:00:00.000Z"
+          scheduledAt: { type: 'string', format: 'date-time' },
           exercises: {
             type: 'array',
             minItems: 1,
@@ -73,14 +76,24 @@ export async function workoutsRoutes(fastify: FastifyInstance) {
     },
   });
 
-  // GET /workouts — Student: get active workout | Coach: get all workouts
-  fastify.get('/', {
+  // GET /workouts — Student: get workout by date | Coach: get all workouts
+  // Query: ?date=YYYY-MM-DD (optional, student only — defaults to today UTC)
+  fastify.get<{ Querystring: { date?: string } }>('/', {
     preHandler: [authenticate],
+    schema: {
+      querystring: {
+        type: 'object',
+        properties: {
+          date: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+        },
+      },
+    },
     handler: async (request, reply) => {
       const user = request.user as JWTPayload;
 
       if (user.role === 'STUDENT') {
-        const workout = await workoutsService.getActiveWorkout(user.id);
+        const { date } = request.query;
+        const workout = await workoutsService.getWorkoutByDate(user.id, date);
         return reply.send({ workout });
       }
 
