@@ -1,20 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
+import { useAuthStore } from '../store/auth.store';
 import type { Workout, User } from '@dryfit/types';
 
-/** Returns YYYY-MM-DD in UTC for a given Date object */
-function toUTCDateString(date: Date): string {
-  return date.toISOString().slice(0, 10);
+/** Returns YYYY-MM-DD in local time for a given Date object */
+export function toLocalDateString(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 /**
- * Student: get workout for a specific date (defaults to today UTC).
+ * Student: get workout for a specific date (defaults to today local).
  * queryKey includes the date so different dates are cached independently.
  */
 export function useActiveWorkout(date?: string) {
-  const dateKey = date ?? toUTCDateString(new Date());
+  const { user } = useAuthStore();
+  const dateKey = date ?? toLocalDateString(new Date());
   return useQuery({
-    queryKey: ['workout', dateKey],
+    queryKey: ['workout', user?.id, dateKey],
     queryFn: async () => {
       const response = await api.get<{ workout: Workout | null }>(
         `/workouts?date=${dateKey}`
@@ -28,8 +33,9 @@ export function useActiveWorkout(date?: string) {
 
 // Coach: get all workouts
 export function useCoachWorkouts() {
+  const { user } = useAuthStore();
   return useQuery({
-    queryKey: ['workouts', 'coach'],
+    queryKey: ['workouts', 'coach', user?.id],
     queryFn: async () => {
       const response = await api.get<{ workouts: Workout[] }>('/workouts');
       return response;
@@ -40,8 +46,9 @@ export function useCoachWorkouts() {
 
 // Coach: list students (legacy for non-date specific views)
 export function useStudents() {
+  const { user } = useAuthStore();
   return useQuery({
-    queryKey: ['students'],
+    queryKey: ['students', user?.id],
     queryFn: async () => {
       const response = await api.get<{ students: User[] }>('/users/students');
       return response;
@@ -52,8 +59,9 @@ export function useStudents() {
 
 // Coach: list students ordered by whether they have a workout on a specific date
 export function useStudentsByDate(date: string) {
+  const { user } = useAuthStore();
   return useQuery({
-    queryKey: ['students', date],
+    queryKey: ['students', user?.id, date],
     queryFn: async () => {
       const response = await api.get<{ students: (User & { hasWorkout: boolean })[] }>(
         `/workouts/coach/by-date?date=${date}`
@@ -66,8 +74,9 @@ export function useStudentsByDate(date: string) {
 
 // Coach: get invite code
 export function useInviteCode() {
+  const { user } = useAuthStore();
   return useQuery({
-    queryKey: ['inviteCode'],
+    queryKey: ['inviteCode', user?.id],
     queryFn: async () => {
       const response = await api.get<{ inviteCode: string }>('/users/invite-code');
       return response;
@@ -78,6 +87,7 @@ export function useInviteCode() {
 
 // Coach: generate a new random invite code
 export function useGenerateInviteCode() {
+  const { user } = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
@@ -86,7 +96,9 @@ export function useGenerateInviteCode() {
     },
     onSuccess: (data) => {
       // Optimistically update the invite code cache
-      queryClient.setQueryData(['inviteCode'], { data: { inviteCode: data.inviteCode } });
+      if (user?.id) {
+        queryClient.setQueryData(['inviteCode', user.id], { data: { inviteCode: data.inviteCode } });
+      }
     },
   });
 }
@@ -97,7 +109,8 @@ export function useGenerateInviteCode() {
  * preventing the UI from flashing "no workout" before the refetch.
  */
 export function useCompleteWorkout(date?: string) {
-  const dateKey = date ?? toUTCDateString(new Date());
+  const { user } = useAuthStore();
+  const dateKey = date ?? toLocalDateString(new Date());
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (workoutId: string) => {
@@ -106,13 +119,13 @@ export function useCompleteWorkout(date?: string) {
     },
     onMutate: async (workoutId) => {
       // Cancel any in-flight refetches so they don't overwrite our optimistic update
-      await queryClient.cancelQueries({ queryKey: ['workout', dateKey] });
+      await queryClient.cancelQueries({ queryKey: ['workout', user?.id, dateKey] });
 
       // Snapshot the previous value for rollback
-      const previous = queryClient.getQueryData(['workout', dateKey]);
+      const previous = queryClient.getQueryData(['workout', user?.id, dateKey]);
 
       // Optimistically update the cache
-      queryClient.setQueryData(['workout', dateKey], (old: { data: { workout: Workout | null } } | undefined) => {
+      queryClient.setQueryData(['workout', user?.id, dateKey], (old: { data: { workout: Workout | null } } | undefined) => {
         if (!old?.data?.workout) return old;
         return {
           ...old,
@@ -131,18 +144,19 @@ export function useCompleteWorkout(date?: string) {
     onError: (_err, _workoutId, context) => {
       // Roll back on error
       if (context?.previous) {
-        queryClient.setQueryData(['workout', dateKey], context.previous);
+        queryClient.setQueryData(['workout', user?.id, dateKey], context.previous);
       }
     },
     onSettled: () => {
       // Refetch to sync with server
-      queryClient.invalidateQueries({ queryKey: ['workout', dateKey] });
+      queryClient.invalidateQueries({ queryKey: ['workout', user?.id, dateKey] });
     },
   });
 }
 
 // Create workout mutation (coach)
 export function useCreateWorkout() {
+  const { user } = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: {
@@ -157,13 +171,13 @@ export function useCreateWorkout() {
       return response.data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['workouts', 'coach'] });
-      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['workouts', 'coach', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['students', user?.id] });
       if (variables.scheduledAt) {
         // Extract YYYY-MM-DD from the scheduledAt to invalidate the specific date
-        queryClient.invalidateQueries({ queryKey: ['students', variables.scheduledAt.slice(0, 10)] });
+        queryClient.invalidateQueries({ queryKey: ['students', user?.id, variables.scheduledAt.slice(0, 10)] });
       } else {
-        queryClient.invalidateQueries({ queryKey: ['students', toUTCDateString(new Date())] });
+        queryClient.invalidateQueries({ queryKey: ['students', user?.id, toLocalDateString(new Date())] });
       }
     },
   });

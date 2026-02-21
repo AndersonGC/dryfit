@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '../../store/auth.store';
-import { useActiveWorkout, useCompleteWorkout } from '../../hooks/useWorkouts';
+import { useActiveWorkout, useCompleteWorkout, toLocalDateString } from '../../hooks/useWorkouts';
 import type { WorkoutType } from '@dryfit/types';
 
 const WORKOUT_LABELS: Record<WorkoutType, string> = {
@@ -58,12 +58,14 @@ function isSameDay(a: Date, b: Date) {
 
 export default function StudentDashboard() {
   const { user } = useAuthStore();
-  const { data: workoutRes, isLoading } = useActiveWorkout();
-  const completeWorkout = useCompleteWorkout();
   const { width } = useWindowDimensions();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const calendarRef = useRef<FlatList>(null);
+
+  const formattedDate = toLocalDateString(selectedDate);
+  const { data: workoutRes, isLoading } = useActiveWorkout(formattedDate);
+  const completeWorkout = useCompleteWorkout(formattedDate);
 
   // The calendar shows exactly 7 days without gap for the container calculation,
   // we handle the spacing using a wrapper.
@@ -105,8 +107,8 @@ export default function StudentDashboard() {
     return 'Boa noite';
   };
 
-  // Workout for the selected day (check by date if available, else use active workout for today)
-  const showWorkout = workout && isSameDay(selectedDate, new Date());
+  // Workout for the selected day
+  const showWorkout = !!workout;
 
   const openYouTube = useCallback(async (videoId: string) => {
     const url = `https://www.youtube.com/watch?v=${videoId}`;
