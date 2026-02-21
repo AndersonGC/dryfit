@@ -48,7 +48,7 @@ export async function authRoutes(fastify: FastifyInstance) {
           email: { type: 'string', format: 'email' },
           password: { type: 'string', minLength: 6 },
           name: { type: 'string', minLength: 2 },
-          inviteCode: { type: 'string', minLength: 6, maxLength: 6 },
+          inviteCode: { type: 'string', minLength: 6, maxLength: 10 },
         },
       },
     },

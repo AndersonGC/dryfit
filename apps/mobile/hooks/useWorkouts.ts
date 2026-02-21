@@ -76,6 +76,21 @@ export function useInviteCode() {
   });
 }
 
+// Coach: generate a new random invite code
+export function useGenerateInviteCode() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const response = await api.post<{ inviteCode: string }>('/users/invite-code', {});
+      return response.data;
+    },
+    onSuccess: (data) => {
+      // Optimistically update the invite code cache
+      queryClient.setQueryData(['inviteCode'], { data: { inviteCode: data.inviteCode } });
+    },
+  });
+}
+
 /**
  * Complete workout mutation.
  * Uses optimistic update to set status = COMPLETED immediately,

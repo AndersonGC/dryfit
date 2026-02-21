@@ -22,6 +22,8 @@ model User {
   coach    User?  @relation("CoachStudents", fields: [coachId], references: [id])
   students User[] @relation("CoachStudents")
 
+  inviteCodes InviteCode[] @relation("CoachInviteCodes")
+
   coachWorkouts   Workout[] @relation("CoachWorkouts")
   studentWorkouts Workout[] @relation("StudentWorkouts")
 
@@ -82,4 +84,14 @@ model Exercise {
 
   workoutId String
   workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+}
+
+model InviteCode {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  coachId   String
+  coach     User      @relation("CoachInviteCodes", fields: [coachId], references: [id])
+  usedAt    DateTime?
+  usedBy    String?
+  createdAt DateTime  @default(now())
 }

@@ -1,19 +1,44 @@
-import { View, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
-import { useInviteCode } from '../../hooks/useWorkouts';
+import { useInviteCode, useGenerateInviteCode } from '../../hooks/useWorkouts';
 
 export default function CoachSettings() {
   const { user, logout } = useAuthStore();
   const { data: inviteRes } = useInviteCode();
+  const generateMutate = useGenerateInviteCode();
+
   const inviteCode = inviteRes?.data?.inviteCode ?? '------';
+  const isGenerating = generateMutate.isPending;
 
   const copyCode = async () => {
+    if (inviteCode === '------') return;
     await Clipboard.setStringAsync(inviteCode);
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert('Copiado!', 'Código de convite copiado. Envie para seus alunos!');
+  };
+
+  const handleGenerateNewCode = () => {
+    Alert.alert(
+      'Gerar Novo Convite',
+      'Isso criará um novo código e manterá o atual válido até ser usado. Continuar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Gerar',
+          onPress: async () => {
+            try {
+              await generateMutate.mutateAsync();
+              await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } catch {
+              Alert.alert('Erro', 'Não foi possível gerar novo código.');
+            }
+          }
+        },
+      ]
+    );
   };
 
   return (
@@ -45,22 +70,41 @@ export default function CoachSettings() {
           <Text className="text-zinc-400 text-sm mb-4">
             Compartilhe este código para que alunos possam entrar na sua equipe.
           </Text>
-          <View className="bg-[#0a0a0a] border border-zinc-700 rounded-2xl px-6 py-4 items-center mb-4">
-            <Text
-              className="text-white font-black tracking-[8px] text-2xl"
-            >
-              {inviteCode}
-            </Text>
+          <View className="bg-[#0a0a0a] border border-zinc-700 rounded-2xl px-6 py-4 items-center gap-2 mb-4">
+            {isGenerating ? (
+              <ActivityIndicator color="#b30f15" size="small" />
+            ) : (
+              <Text className="text-white font-black tracking-[8px] text-2xl">
+                {inviteCode}
+              </Text>
+            )}
           </View>
-          <TouchableOpacity
-            onPress={copyCode}
-            className="flex-row items-center justify-center gap-2 bg-primary py-4 rounded-2xl"
-            style={{ shadowColor: '#b30f15', shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 }}
-            activeOpacity={0.9}
-          >
-            <Ionicons name="copy-outline" size={18} color="white" />
-            <Text className="text-white font-bold">Copiar código</Text>
-          </TouchableOpacity>
+          <View className="flex-row gap-3">
+            <TouchableOpacity
+              onPress={handleGenerateNewCode}
+              disabled={isGenerating}
+              className={`flex-1 flex-row items-center justify-center gap-2 py-4 rounded-2xl border ${isGenerating ? 'border-zinc-800 bg-zinc-900' : 'border-zinc-700 bg-zinc-800'
+                }`}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="refresh-outline" size={18} color={isGenerating ? '#52525b' : 'white'} />
+              <Text className={`font-bold ${isGenerating ? 'text-zinc-500' : 'text-white'}`}>
+                Gerar Novo
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={copyCode}
+              disabled={isGenerating}
+              className={`flex-1 flex-row items-center justify-center gap-2 py-4 rounded-2xl ${isGenerating ? 'bg-zinc-800' : 'bg-primary'
+                }`}
+              style={!isGenerating ? { shadowColor: '#b30f15', shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 } : undefined}
+              activeOpacity={0.9}
+            >
+              <Ionicons name="copy-outline" size={18} color={isGenerating ? '#52525b' : 'white'} />
+              <Text className={`font-bold ${isGenerating ? 'text-zinc-500' : 'text-white'}`}>Copiar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Logout */}
