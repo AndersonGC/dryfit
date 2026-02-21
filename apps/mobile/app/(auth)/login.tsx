@@ -31,7 +31,12 @@ export default function LoginScreen() {
     }
     setIsLoading(true);
     try {
-      await login(email.trim().toLowerCase(), password);
+      const user = await login(email.trim().toLowerCase(), password);
+      if (user?.role === 'COACH') {
+        router.replace('/(coach)/dashboard');
+      } else {
+        router.replace('/(student)/dashboard');
+      }
     } catch (error: unknown) {
       const message =
         (error as { response?: { data?: { error?: string } } })?.response?.data?.error ??

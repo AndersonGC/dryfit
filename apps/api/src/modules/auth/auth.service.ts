@@ -83,7 +83,7 @@ export class AuthService {
   }
 
   async generateCoachInviteCode(coachId: string) {
-    const randomPart = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 4)();
+    const randomPart = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 5)();
     const code = `DRFT-${randomPart}`;
 
     const inviteCode = await this.prisma.inviteCode.create({

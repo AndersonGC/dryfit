@@ -16,48 +16,26 @@ export async function workoutsRoutes(fastify: FastifyInstance) {
   fastify.post<{
     Body: {
       title: string;
+      description?: string;
+      youtubeVideoId?: string;
       type: 'STRENGTH' | 'WOD' | 'HIIT' | 'CUSTOM';
       studentId: string;
       scheduledAt?: string;
-      exercises: Array<{
-        name: string;
-        sets?: number;
-        reps?: string;
-        weight?: string;
-        duration?: string;
-        rounds?: number;
-        order: number;
-      }>;
     };
   }>('/', {
     preHandler: [requireCoach],
     schema: {
       body: {
         type: 'object',
-        required: ['title', 'studentId', 'exercises'],
+        required: ['title', 'studentId'],
         properties: {
           title: { type: 'string', minLength: 1 },
+          description: { type: 'string' },
+          youtubeVideoId: { type: 'string' },
           type: { type: 'string', enum: ['STRENGTH', 'WOD', 'HIIT', 'CUSTOM'] },
           studentId: { type: 'string' },
           // ISO 8601 date string — e.g. "2026-02-25T14:00:00.000Z"
-          scheduledAt: { type: 'string', format: 'date-time' },
-          exercises: {
-            type: 'array',
-            minItems: 1,
-            items: {
-              type: 'object',
-              required: ['name', 'order'],
-              properties: {
-                name: { type: 'string' },
-                sets: { type: 'number' },
-                reps: { type: 'string' },
-                weight: { type: 'string' },
-                duration: { type: 'string' },
-                rounds: { type: 'number' },
-                order: { type: 'number' },
-              },
-            },
-          },
+          scheduledAt: { type: 'string' },
         },
       },
     },

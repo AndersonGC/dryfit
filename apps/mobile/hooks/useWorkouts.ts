@@ -96,7 +96,8 @@ export function useGenerateInviteCode() {
  * Uses optimistic update to set status = COMPLETED immediately,
  * preventing the UI from flashing "no workout" before the refetch.
  */
-export function useCompleteWorkout(dateKey: string) {
+export function useCompleteWorkout(date?: string) {
+  const dateKey = date ?? toUTCDateString(new Date());
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (workoutId: string) => {
@@ -146,16 +147,11 @@ export function useCreateWorkout() {
   return useMutation({
     mutationFn: async (data: {
       title: string;
+      description?: string;
+      youtubeVideoId?: string;
       type: 'STRENGTH' | 'WOD' | 'HIIT' | 'CUSTOM';
       studentId: string;
       scheduledAt?: string; // ISO 8601 — allows future scheduling
-      exercises: Array<{
-        name: string;
-        sets?: number;
-        reps?: string;
-        weight?: string;
-        order: number;
-      }>;
     }) => {
       const response = await api.post<Workout>('/workouts', data);
       return response.data;

@@ -13,24 +13,13 @@ export interface User {
   createdAt: string;
 }
 
-export interface Exercise {
-  id: string;
-  name: string;
-  sets?: number;
-  reps?: string;
-  weight?: string;
-  duration?: string;
-  rounds?: number;
-  order: number;
-  workoutId: string;
-}
-
 export interface Workout {
   id: string;
   title: string;
+  description?: string | null;
+  youtubeVideoId?: string | null;
   type: WorkoutType;
   status: WorkoutStatus;
-  exercises: Exercise[];
   coachId: string;
   studentId: string;
   scheduledAt: string;
@@ -60,8 +49,9 @@ export interface RegisterStudentRequest {
 
 export interface CreateWorkoutRequest {
   title: string;
+  description?: string;
+  youtubeVideoId?: string;
   type: WorkoutType;
   studentId: string;
   scheduledAt?: string; // ISO 8601 — allows future scheduling
-  exercises: Omit<Exercise, 'id' | 'workoutId'>[];
 }

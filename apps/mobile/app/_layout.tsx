@@ -1,6 +1,6 @@
 import '../global.css';
 import { useEffect, useState } from 'react';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -20,6 +20,7 @@ function AuthGate() {
   const { isAuthenticated, isLoading, user, loadStoredAuth } = useAuthStore();
   const router = useRouter();
   const segments = useSegments();
+  const rootNavigationState = useRootNavigationState();
 
   useEffect(() => {
     loadStoredAuth();
@@ -27,24 +28,25 @@ function AuthGate() {
 
   useEffect(() => {
     if (isLoading) return;
+    if (!rootNavigationState?.key) return; // Wait until navigation is fully mounted
 
     const inAuthGroup = segments[0] === '(auth)';
-    const inCoachGroup = segments[0] === '(coach)';
-    const inStudentGroup = segments[0] === '(student)';
 
     if (!isAuthenticated && !inAuthGroup) {
-      router.replace('/(auth)/login');
+      setTimeout(() => router.replace('/(auth)/login'), 1);
       return;
     }
 
     if (isAuthenticated && inAuthGroup) {
-      if (user?.role === 'COACH') {
-        router.replace('/(coach)/dashboard');
-      } else {
-        router.replace('/(student)/dashboard');
-      }
+      setTimeout(() => {
+        if (user?.role === 'COACH') {
+          router.replace('/(coach)/dashboard');
+        } else {
+          router.replace('/(student)/dashboard');
+        }
+      }, 1);
     }
-  }, [isAuthenticated, isLoading, segments, user]);
+  }, [isAuthenticated, isLoading, segments, user, rootNavigationState?.key]);
 
   return null;
 }

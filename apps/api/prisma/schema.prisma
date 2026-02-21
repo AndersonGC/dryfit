@@ -40,13 +40,14 @@ enum Role {
 }
 
 model Workout {
-  id          String        @id @default(cuid())
-  title       String
-  type        WorkoutType   @default(STRENGTH)
-  status      WorkoutStatus @default(PENDING)
-  exercises   Exercise[]
-  scheduledAt DateTime      @default(now())
-  completedAt DateTime?
+  id             String        @id @default(cuid())
+  title          String
+  description    String?       @db.Text
+  youtubeVideoId String?
+  type           WorkoutType   @default(STRENGTH)
+  status         WorkoutStatus @default(PENDING)
+  scheduledAt    DateTime      @default(now())
+  completedAt    DateTime?
 
   coachId   String
   coach     User   @relation("CoachWorkouts", fields: [coachId], references: [id])
@@ -70,20 +71,6 @@ enum WorkoutType {
 enum WorkoutStatus {
   PENDING
   COMPLETED
-}
-
-model Exercise {
-  id       String  @id @default(cuid())
-  name     String
-  sets     Int?
-  reps     String?
-  weight   String?
-  duration String?
-  rounds   Int?
-  order    Int
-
-  workoutId String
-  workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
 }
 
 model InviteCode {

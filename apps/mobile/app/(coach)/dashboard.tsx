@@ -15,17 +15,15 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
 import { useStudents, useCreateWorkout } from '../../hooks/useWorkouts';
-import type { User, Exercise, WorkoutType } from '@dryfit/types';
+import type { User, WorkoutType } from '@dryfit/types';
 
 const WORKOUT_TYPES: WorkoutType[] = ['STRENGTH', 'WOD', 'HIIT', 'CUSTOM'];
 const WORKOUT_LABELS: Record<WorkoutType, string> = {
-  STRENGTH: 'Força',
+  STRENGTH: 'FOR TIME',
   WOD: 'WOD',
-  HIIT: 'HIIT',
-  CUSTOM: 'Custom',
+  HIIT: 'EMOM',
+  CUSTOM: 'AMRAP',
 };
-
-type ExerciseForm = { name: string; sets: string; reps: string; weight?: string };
 
 function formatDate(date: Date): string {
   const y = date.getFullYear();
@@ -91,7 +89,8 @@ export default function CoachDashboard() {
   const [modalVisible, setModalVisible] = useState(false);
   const [workoutTitle, setWorkoutTitle] = useState('');
   const [workoutType, setWorkoutType] = useState<WorkoutType>('STRENGTH');
-  const [exercises, setExercises] = useState<ExerciseForm[]>([{ name: '', sets: '3', reps: '12' }]);
+  const [workoutDescription, setWorkoutDescription] = useState('');
+  const [youtubeVideoId, setYoutubeVideoId] = useState('');
   const [workoutDate, setWorkoutDate] = useState<Date>(new Date());
   const [showIOSPicker, setShowIOSPicker] = useState(false);
 
@@ -105,20 +104,11 @@ export default function CoachDashboard() {
   const openBuilder = useCallback((student: User) => {
     setSelectedStudent(student);
     setWorkoutTitle('');
-    setExercises([{ name: '', sets: '3', reps: '12' }]);
+    setWorkoutDescription('');
+    setYoutubeVideoId('');
     setWorkoutDate(new Date());
     setModalVisible(true);
   }, []);
-
-  const addExercise = () => setExercises((prev) => [...prev, { name: '', sets: '3', reps: '12' }]);
-
-  const updateExercise = (index: number, field: keyof ExerciseForm, value: string | number) => {
-    setExercises((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-  };
 
   const openDatePicker = () => {
     if (Platform.OS === 'android') {
@@ -139,24 +129,23 @@ export default function CoachDashboard() {
       Alert.alert('Atenção', 'Título e aluno são obrigatórios.');
       return;
     }
-    const validExercises = exercises.filter((e) => e.name.trim());
-    if (!validExercises.length) {
-      Alert.alert('Atenção', 'Adicione pelo menos 1 exercício.');
-      return;
+
+    // Optional: Extract just the ID if the user pastes a full URL
+    let parsedVideoId = youtubeVideoId.trim();
+    if (parsedVideoId.includes('v=')) {
+      parsedVideoId = parsedVideoId.split('v=')[1]?.split('&')[0] || parsedVideoId;
+    } else if (parsedVideoId.includes('youtu.be/')) {
+      parsedVideoId = parsedVideoId.split('youtu.be/')[1]?.split('?')[0] || parsedVideoId;
     }
+
     try {
       await createWorkout.mutateAsync({
         studentId: selectedStudent.id,
         title: workoutTitle.trim(),
+        description: workoutDescription.trim(),
+        youtubeVideoId: parsedVideoId || undefined,
         type: workoutType,
-        date: formatDate(workoutDate),
-        exercises: validExercises.map((e, i) => ({
-          name: e.name,
-          sets: Number(e.sets),
-          reps: e.reps,
-          weight: e.weight,
-          order: i,
-        })),
+        scheduledAt: workoutDate.toISOString(),
       });
       setModalVisible(false);
       Alert.alert('✅ Treino criado!', `Treino enviado para ${selectedStudent.name}.`);
@@ -312,35 +301,39 @@ export default function CoachDashboard() {
               </View>
             </ScrollView>
 
-            {/* Exercícios */}
-            <View className="gap-3 mb-4">
-              {exercises.map((ex, i) => (
-                <View key={i} className="bg-white/10 border border-white/10 p-3 rounded-xl flex-row items-center gap-3">
-                  <Ionicons name="reorder-three" size={16} color="rgba(255,255,255,0.5)" />
+            {/* Nova Funcionalidade de Card: Descrição e YouTube Link */}
+            <View className="mb-6 bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg p-2">
+              <TextInput
+                className="text-white text-base px-3 pt-3 pb-8 text-left"
+                placeholder="Descreva o treino livremente aqui... (Pressione OK no teclado para sair)"
+                placeholderTextColor="#52525b"
+                multiline={true}
+                value={workoutDescription}
+                onChangeText={setWorkoutDescription}
+                style={{ minHeight: 120, textAlignVertical: 'top' }}
+                blurOnSubmit={false}
+              />
+
+              <View className="mt-2 border-t border-zinc-800 pt-3 px-1 mb-1">
+                <View className="flex-row items-center gap-2 bg-[#1c1f26] px-3 py-3 rounded-xl border border-zinc-800">
+                  <Ionicons name="logo-youtube" size={20} color="#ff0000" />
                   <TextInput
                     className="flex-1 text-white text-sm"
-                    placeholder="Nome do exercício (ex: Supino 3x12)"
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                    value={ex.name}
-                    onChangeText={(v) => updateExercise(i, 'name', v)}
+                    placeholder="Link ou ID do vídeo no YouTube (opcional)"
+                    placeholderTextColor="#52525b"
+                    value={youtubeVideoId}
+                    onChangeText={setYoutubeVideoId}
+                    autoCapitalize="none"
+                    autoCorrect={false}
                   />
-                  <Ionicons name="create-outline" size={16} color="rgba(255,255,255,0.5)" />
                 </View>
-              ))}
+              </View>
             </View>
-
-            <TouchableOpacity
-              onPress={addExercise}
-              className="w-full py-3 border-2 border-dashed border-white/30 rounded-xl flex-row items-center justify-center gap-2 mb-6"
-            >
-              <Ionicons name="add-circle-outline" size={18} color="rgba(255,255,255,0.6)" />
-              <Text className="text-white/70 text-sm font-bold tracking-wide">ADD EXERCÍCIO</Text>
-            </TouchableOpacity>
 
             <TouchableOpacity
               onPress={handleCreate}
               disabled={createWorkout.isPending}
-              className="w-full bg-primary py-4 rounded-2xl items-center mb-8"
+              className="w-full bg-primary py-4 rounded-2xl items-center mb-12 mt-2"
               style={{ shadowColor: '#b30f15', shadowOpacity: 0.35, shadowRadius: 12, elevation: 8 }}
             >
               {createWorkout.isPending ? (

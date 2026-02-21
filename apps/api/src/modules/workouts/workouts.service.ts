@@ -2,19 +2,12 @@ import { PrismaClient } from '@prisma/client';
 
 interface CreateWorkoutData {
   title: string;
+  description?: string;
+  youtubeVideoId?: string;
   type: 'STRENGTH' | 'WOD' | 'HIIT' | 'CUSTOM';
   studentId: string;
   coachId: string;
   scheduledAt?: string; // ISO 8601 — allows future scheduling
-  exercises: Array<{
-    name: string;
-    sets?: number;
-    reps?: string;
-    weight?: string;
-    duration?: string;
-    rounds?: number;
-    order: number;
-  }>;
 }
 
 /** Returns start and end of a calendar day in UTC for a given YYYY-MM-DD string */
@@ -48,23 +41,13 @@ export class WorkoutsService {
     const workout = await this.prisma.workout.create({
       data: {
         title: data.title,
+        description: data.description,
+        youtubeVideoId: data.youtubeVideoId,
         type: data.type,
         coachId: data.coachId,
         studentId: data.studentId,
         scheduledAt,
-        exercises: {
-          create: data.exercises.map((exercise) => ({
-            name: exercise.name,
-            sets: exercise.sets,
-            reps: exercise.reps,
-            weight: exercise.weight,
-            duration: exercise.duration,
-            rounds: exercise.rounds,
-            order: exercise.order,
-          })),
-        },
       },
-      include: { exercises: { orderBy: { order: 'asc' } } },
     });
 
     return workout;
@@ -84,7 +67,6 @@ export class WorkoutsService {
         scheduledAt: range,
       },
       include: {
-        exercises: { orderBy: { order: 'asc' } },
         coach: { select: { name: true } },
       },
       orderBy: { scheduledAt: 'desc' },
@@ -94,7 +76,7 @@ export class WorkoutsService {
   async getStudentWorkouts(studentId: string) {
     return this.prisma.workout.findMany({
       where: { studentId },
-      include: { exercises: { orderBy: { order: 'asc' } }, coach: { select: { name: true } } },
+      include: { coach: { select: { name: true } } },
       orderBy: { scheduledAt: 'desc' },
     });
   }
@@ -103,7 +85,7 @@ export class WorkoutsService {
   async getActiveWorkout(studentId: string) {
     return this.prisma.workout.findFirst({
       where: { studentId, status: 'PENDING' },
-      include: { exercises: { orderBy: { order: 'asc' } }, coach: { select: { name: true } } },
+      include: { coach: { select: { name: true } } },
       orderBy: { scheduledAt: 'desc' },
     });
   }
@@ -120,7 +102,6 @@ export class WorkoutsService {
     return this.prisma.workout.update({
       where: { id: workoutId },
       data: { status: 'COMPLETED', completedAt: new Date() },
-      include: { exercises: { orderBy: { order: 'asc' } } },
     });
   }
 
@@ -168,7 +149,6 @@ export class WorkoutsService {
     return this.prisma.workout.findMany({
       where: { coachId },
       include: {
-        exercises: { orderBy: { order: 'asc' } },
         student: { select: { id: true, name: true, email: true } },
       },
       orderBy: { createdAt: 'desc' },
