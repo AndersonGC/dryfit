@@ -124,6 +124,46 @@ export class WorkoutsService {
     });
   }
 
+  async getCoachStudentsByDate(coachId: string, dateStr: string) {
+    // 1. Fetch all students for this coach
+    const students = await this.prisma.user.findMany({
+      where: { coachId, role: 'STUDENT' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    // 2. Find workouts for these students on the given date
+    const range = dayRangeUTC(dateStr);
+    const workouts = await this.prisma.workout.findMany({
+      where: {
+        coachId,
+        scheduledAt: range,
+      },
+      select: {
+        studentId: true,
+      },
+    });
+
+    // 3. Map students and add hasWorkout flag
+    const studentsWithWorkouts = new Set(workouts.map((w) => w.studentId));
+    
+    const mappedStudents = students.map((student) => ({
+      ...student,
+      hasWorkout: studentsWithWorkouts.has(student.id),
+    }));
+
+    // 4. Sort: students WITHOUT workout first (hasWorkout: false), then by name
+    return mappedStudents.sort((a, b) => {
+      if (a.hasWorkout === b.hasWorkout) return 0;
+      return a.hasWorkout ? 1 : -1;
+    });
+  }
+
   async getCoachWorkouts(coachId: string) {
     return this.prisma.workout.findMany({
       where: { coachId },

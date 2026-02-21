@@ -106,6 +106,31 @@ export async function workoutsRoutes(fastify: FastifyInstance) {
     },
   });
 
+  // GET /workouts/coach/by-date — Coach: get students with hasWorkout flag
+  fastify.get<{ Querystring: { date?: string } }>('/coach/by-date', {
+    preHandler: [requireCoach],
+    schema: {
+      querystring: {
+        type: 'object',
+        required: ['date'],
+        properties: {
+          date: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+        },
+      },
+    },
+    handler: async (request, reply) => {
+      const coach = request.user as JWTPayload;
+      const { date } = request.query;
+      
+      if (!date) {
+        return reply.status(400).send({ error: 'A data é obrigatória.' });
+      }
+
+      const students = await workoutsService.getCoachStudentsByDate(coach.id, date);
+      return reply.send({ students });
+    },
+  });
+
   // PATCH /workouts/:id/complete — Student only
   fastify.patch<{ Params: { id: string } }>('/:id/complete', {
     preHandler: [requireStudent],

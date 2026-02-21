@@ -38,12 +38,26 @@ export function useCoachWorkouts() {
   });
 }
 
-// Coach: list students
+// Coach: list students (legacy for non-date specific views)
 export function useStudents() {
   return useQuery({
     queryKey: ['students'],
     queryFn: async () => {
       const response = await api.get<{ students: User[] }>('/users/students');
+      return response;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+// Coach: list students ordered by whether they have a workout on a specific date
+export function useStudentsByDate(date: string) {
+  return useQuery({
+    queryKey: ['students', date],
+    queryFn: async () => {
+      const response = await api.get<{ students: (User & { hasWorkout: boolean })[] }>(
+        `/workouts/coach/by-date?date=${date}`
+      );
       return response;
     },
     staleTime: 1000 * 60 * 5,
@@ -131,9 +145,15 @@ export function useCreateWorkout() {
       const response = await api.post<Workout>('/workouts', data);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['workouts', 'coach'] });
       queryClient.invalidateQueries({ queryKey: ['students'] });
+      if (variables.scheduledAt) {
+        // Extract YYYY-MM-DD from the scheduledAt to invalidate the specific date
+        queryClient.invalidateQueries({ queryKey: ['students', variables.scheduledAt.slice(0, 10)] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['students', toUTCDateString(new Date())] });
+      }
     },
   });
 }

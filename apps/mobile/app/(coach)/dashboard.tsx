@@ -14,7 +14,7 @@ import {
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
-import { useStudents, useCreateWorkout } from '../../hooks/useWorkouts';
+import { useStudentsByDate, useCreateWorkout } from '../../hooks/useWorkouts';
 import type { User, Exercise, WorkoutType } from '@dryfit/types';
 
 const WORKOUT_TYPES: WorkoutType[] = ['STRENGTH', 'WOD', 'HIIT', 'CUSTOM'];
@@ -39,7 +39,7 @@ function formatDateBR(date: Date): string {
 }
 
 interface StudentCardProps {
-  student: User;
+  student: User & { hasWorkout?: boolean };
   isSelected: boolean;
   onSelect: () => void;
   onBuild: () => void;
@@ -63,9 +63,16 @@ const StudentCard = ({ student, isSelected, onSelect, onBuild }: StudentCardProp
         <Ionicons name="person" size={28} color={isSelected ? 'white' : '#71717a'} />
       </View>
       <View>
-        <Text className={`font-bold text-base ${isSelected ? 'text-white' : 'text-white'}`}>
-          {student.name}
-        </Text>
+        <View className="flex-row items-center gap-2">
+          <Text className={`font-bold text-base ${isSelected ? 'text-white' : 'text-white'}`}>
+            {student.name}
+          </Text>
+          {student.hasWorkout && (
+            <View className="bg-green-500/20 px-2 py-0.5 rounded-md border border-green-500/30">
+              <Text className="text-green-500 text-[10px] font-bold uppercase tracking-wider">Treino OK</Text>
+            </View>
+          )}
+        </View>
         <Text className={`text-xs mt-0.5 ${isSelected ? 'text-white/70' : 'text-zinc-500'}`}>
           Aluno ativo
         </Text>
@@ -83,7 +90,6 @@ const StudentCard = ({ student, isSelected, onSelect, onBuild }: StudentCardProp
 
 export default function CoachDashboard() {
   const { user } = useAuthStore();
-  const { data: studentsData, isLoading: loadingStudents } = useStudents();
   const createWorkout = useCreateWorkout();
 
   const [search, setSearch] = useState('');
@@ -92,10 +98,17 @@ export default function CoachDashboard() {
   const [workoutTitle, setWorkoutTitle] = useState('');
   const [workoutType, setWorkoutType] = useState<WorkoutType>('STRENGTH');
   const [exercises, setExercises] = useState<ExerciseForm[]>([{ name: '', sets: '3', reps: '12' }]);
+
+  // Base date for filtering students on the dashboard
+  const [dashboardDate, setDashboardDate] = useState<Date>(new Date());
+  const [showDashboardIOSPicker, setShowDashboardIOSPicker] = useState(false);
+
+  // Date for the workout being built in the modal
   const [workoutDate, setWorkoutDate] = useState<Date>(new Date());
   const [showIOSPicker, setShowIOSPicker] = useState(false);
 
-  const students: User[] = studentsData?.data?.students ?? [];
+  const { data: studentsData, isLoading: loadingStudents } = useStudentsByDate(formatDate(dashboardDate));
+  const students = studentsData?.data?.students ?? [];
 
   const filteredStudents = useMemo(
     () => students.filter((s) => s.name.toLowerCase().includes(search.toLowerCase())),
@@ -106,9 +119,9 @@ export default function CoachDashboard() {
     setSelectedStudent(student);
     setWorkoutTitle('');
     setExercises([{ name: '', sets: '3', reps: '12' }]);
-    setWorkoutDate(new Date());
+    setWorkoutDate(dashboardDate); // Set the modal date to match the dashboard filter date
     setModalVisible(true);
-  }, []);
+  }, [dashboardDate]);
 
   const addExercise = () => setExercises((prev) => [...prev, { name: '', sets: '3', reps: '12' }]);
 
@@ -131,6 +144,20 @@ export default function CoachDashboard() {
       });
     } else {
       setShowIOSPicker(true);
+    }
+  };
+
+  const openDashboardDatePicker = () => {
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: dashboardDate,
+        mode: 'date',
+        onChange: (_event, date) => {
+          if (date) setDashboardDate(date);
+        },
+      });
+    } else {
+      setShowDashboardIOSPicker(true);
     }
   };
 
@@ -197,11 +224,42 @@ export default function CoachDashboard() {
         <Ionicons name="options-outline" size={20} color="#71717a" style={{ position: 'absolute', right: 16, top: 14 }} />
       </View>
 
-      {/* Section title */}
+      {/* Section title & Date Filter */}
       <View className="flex-row items-center justify-between mb-4 px-1">
         <Text className="text-lg font-bold text-white">Gerenciar Alunos</Text>
-        <Text className="text-primary text-sm font-semibold">Ver todos</Text>
+
+        <TouchableOpacity
+          onPress={openDashboardDatePicker}
+          className="flex-row items-center gap-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-lg"
+        >
+          <Ionicons name="calendar-outline" size={16} color="#primary" />
+          <Text className="text-zinc-300 text-xs font-semibold">
+            {formatDateBR(dashboardDate)}
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {/* iOS Date Picker inline for Dashboard */}
+      {Platform.OS === 'ios' && showDashboardIOSPicker && (
+        <View className="mb-4 bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+          <DateTimePicker
+            value={dashboardDate}
+            mode="date"
+            display="spinner"
+            onChange={(_event, date) => {
+              if (date) setDashboardDate(date);
+            }}
+            style={{ height: 180 }}
+            themeVariant="dark"
+          />
+          <TouchableOpacity
+            onPress={() => setShowDashboardIOSPicker(false)}
+            className="items-center py-3 border-t border-zinc-800"
+          >
+            <Text className="text-primary font-bold">Confirmar Data</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </>
   );
 
