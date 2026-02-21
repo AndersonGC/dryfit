@@ -1,10 +1,11 @@
 import '../global.css';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuthStore } from '../store/auth.store';
+import AnimatedSplashScreen from '../components/AnimatedSplashScreen';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,6 +50,8 @@ function AuthGate() {
 }
 
 export default function RootLayout() {
+  const [splashComplete, setSplashComplete] = useState(false);
+
   return (
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView className="flex-1">
@@ -59,6 +62,9 @@ export default function RootLayout() {
           <Stack.Screen name="(coach)" />
           <Stack.Screen name="(student)" />
         </Stack>
+        {!splashComplete && (
+          <AnimatedSplashScreen onFinish={() => setSplashComplete(true)} />
+        )}
       </GestureHandlerRootView>
     </QueryClientProvider>
   );

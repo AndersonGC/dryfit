@@ -62,10 +62,10 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Status bar spacer */}
-          <View className="h-12" />
+          <View className="h-32" />
 
           {/* Logo */}
-          <View className="items-center mb-10 mt-4">
+          <View className="items-center mb-10 mt-8">
             <Image
               source={require('../../assets/images/icon.png')}
               style={{ width: 112, height: 112, borderRadius: 28, marginBottom: 20 }}
@@ -141,11 +141,6 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            {/* Forgot */}
-            <View className="items-end -mt-2">
-              <Text className="text-primary text-sm font-medium">Esqueceu a senha?</Text>
-            </View>
-
             {/* Login Button */}
             <TouchableOpacity
               onPress={handleLogin}
@@ -165,14 +160,7 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Divider */}
-          <View className="mt-8 mb-6 flex-row items-center gap-4">
-            <View className="h-px flex-1 bg-zinc-800" />
-            <Text className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
-              Ou acesse com
-            </Text>
-            <View className="h-px flex-1 bg-zinc-800" />
-          </View>
+
 
           {/* Sign Up Link */}
           <View className="flex-1 justify-end pb-10 items-center">
