@@ -10,22 +10,21 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
-import { useStudents, useCreateWorkout } from '../../hooks/useWorkouts';
-import type { User, Exercise, WorkoutType } from '@dryfit/types';
+import { useStudentsByDate, useCreateWorkout, toLocalDateString } from '../../hooks/useWorkouts';
+import type { User, WorkoutType } from '@dryfit/types';
 
 const WORKOUT_TYPES: WorkoutType[] = ['STRENGTH', 'WOD', 'HIIT', 'CUSTOM'];
 const WORKOUT_LABELS: Record<WorkoutType, string> = {
-  STRENGTH: 'Força',
+  STRENGTH: 'FOR TIME',
   WOD: 'WOD',
-  HIIT: 'HIIT',
-  CUSTOM: 'Custom',
+  HIIT: 'EMOM',
+  CUSTOM: 'AMRAP',
 };
-
-type ExerciseForm = { name: string; sets: string; reps: string; weight?: string };
 
 function formatDate(date: Date): string {
   const y = date.getFullYear();
@@ -38,8 +37,36 @@ function formatDateBR(date: Date): string {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+const DAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const TODAY = new Date();
+
+function buildDays() {
+  const currentDay = TODAY.getDay(); // 0 is Sunday
+  const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+  const daysToSubtract = 28 + daysFromMonday; // Go back 4 weeks
+
+  const days = [];
+  for (let i = 0; i < 63; i++) { // Generate 9 full weeks
+    const d = new Date(TODAY);
+    d.setDate(TODAY.getDate() - daysToSubtract + i);
+    days.push({
+      date: new Date(d),
+      day: DAY_LABELS[d.getDay()],
+      num: d.getDate(),
+      isToday: d.toDateString() === TODAY.toDateString(),
+    });
+  }
+  return { days, todayIndex: daysToSubtract };
+}
+
+const { days: ALL_DAYS, todayIndex: TODAY_INDEX } = buildDays();
+
+function isSameDay(a: Date, b: Date) {
+  return a.toDateString() === b.toDateString();
+}
+
 interface StudentCardProps {
-  student: User;
+  student: User & { hasWorkout?: boolean };
   isSelected: boolean;
   onSelect: () => void;
   onBuild: () => void;
@@ -50,24 +77,29 @@ const StudentCard = ({ student, isSelected, onSelect, onBuild }: StudentCardProp
     onPress={onSelect}
     activeOpacity={0.85}
     className={`p-4 rounded-3xl flex-row items-center justify-between mb-4 border ${isSelected
-        ? 'bg-primary border-primary'
-        : 'bg-zinc-900 border-zinc-800'
+      ? 'bg-primary border-primary'
+      : 'bg-zinc-900 border-zinc-800'
       }`}
     style={isSelected ? { shadowColor: '#b30f15', shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 } : {}}
   >
     <View className="flex-row items-center gap-3">
       <View
-        className={`w-14 h-14 rounded-2xl items-center justify-center ${isSelected ? 'bg-white/20 border border-white/20' : 'bg-zinc-800'
+        className={`w-14 h-14 rounded-2xl items-center justify-center relative ${isSelected ? 'bg-white/20 border border-white/20' : 'bg-zinc-800'
           }`}
       >
         <Ionicons name="person" size={28} color={isSelected ? 'white' : '#71717a'} />
+        {student.hasWorkout && (
+          <View className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[#18181b] items-center justify-center">
+            <Ionicons name="checkmark" size={10} color="white" />
+          </View>
+        )}
       </View>
       <View>
         <Text className={`font-bold text-base ${isSelected ? 'text-white' : 'text-white'}`}>
           {student.name}
         </Text>
         <Text className={`text-xs mt-0.5 ${isSelected ? 'text-white/70' : 'text-zinc-500'}`}>
-          Aluno ativo
+          {student.hasWorkout ? 'Treino Agendado ✅' : 'Aguardando Treino ⏳'}
         </Text>
       </View>
     </View>
@@ -83,7 +115,7 @@ const StudentCard = ({ student, isSelected, onSelect, onBuild }: StudentCardProp
 
 export default function CoachDashboard() {
   const { user } = useAuthStore();
-  const { data: studentsData, isLoading: loadingStudents } = useStudents();
+  const { width } = useWindowDimensions();
   const createWorkout = useCreateWorkout();
 
   const [search, setSearch] = useState('');
@@ -91,11 +123,18 @@ export default function CoachDashboard() {
   const [modalVisible, setModalVisible] = useState(false);
   const [workoutTitle, setWorkoutTitle] = useState('');
   const [workoutType, setWorkoutType] = useState<WorkoutType>('STRENGTH');
-  const [exercises, setExercises] = useState<ExerciseForm[]>([{ name: '', sets: '3', reps: '12' }]);
+  const [workoutDescription, setWorkoutDescription] = useState('');
+  const [youtubeVideoId, setYoutubeVideoId] = useState('');
+
+  // Dashboard date controller
+  const [dashboardDate, setDashboardDate] = useState<Date>(new Date());
+
+  // Modal date controller (prefilled with dashboard date when opening)
   const [workoutDate, setWorkoutDate] = useState<Date>(new Date());
   const [showIOSPicker, setShowIOSPicker] = useState(false);
 
-  const students: User[] = studentsData?.data?.students ?? [];
+  const { data: studentsData, isLoading: loadingStudents } = useStudentsByDate(toLocalDateString(dashboardDate));
+  const students: (User & { hasWorkout: boolean })[] = (studentsData?.data as any)?.students ?? [];
 
   const filteredStudents = useMemo(
     () => students.filter((s) => s.name.toLowerCase().includes(search.toLowerCase())),
@@ -105,20 +144,11 @@ export default function CoachDashboard() {
   const openBuilder = useCallback((student: User) => {
     setSelectedStudent(student);
     setWorkoutTitle('');
-    setExercises([{ name: '', sets: '3', reps: '12' }]);
-    setWorkoutDate(new Date());
+    setWorkoutDescription('');
+    setYoutubeVideoId('');
+    setWorkoutDate(dashboardDate); // Pre-select the date that the coach was looking at
     setModalVisible(true);
-  }, []);
-
-  const addExercise = () => setExercises((prev) => [...prev, { name: '', sets: '3', reps: '12' }]);
-
-  const updateExercise = (index: number, field: keyof ExerciseForm, value: string | number) => {
-    setExercises((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-  };
+  }, [dashboardDate]);
 
   const openDatePicker = () => {
     if (Platform.OS === 'android') {
@@ -139,24 +169,23 @@ export default function CoachDashboard() {
       Alert.alert('Atenção', 'Título e aluno são obrigatórios.');
       return;
     }
-    const validExercises = exercises.filter((e) => e.name.trim());
-    if (!validExercises.length) {
-      Alert.alert('Atenção', 'Adicione pelo menos 1 exercício.');
-      return;
+
+    // Optional: Extract just the ID if the user pastes a full URL
+    let parsedVideoId = youtubeVideoId.trim();
+    if (parsedVideoId.includes('v=')) {
+      parsedVideoId = parsedVideoId.split('v=')[1]?.split('&')[0] || parsedVideoId;
+    } else if (parsedVideoId.includes('youtu.be/')) {
+      parsedVideoId = parsedVideoId.split('youtu.be/')[1]?.split('?')[0] || parsedVideoId;
     }
+
     try {
       await createWorkout.mutateAsync({
         studentId: selectedStudent.id,
         title: workoutTitle.trim(),
+        description: workoutDescription.trim(),
+        youtubeVideoId: parsedVideoId || undefined,
         type: workoutType,
-        date: formatDate(workoutDate),
-        exercises: validExercises.map((e, i) => ({
-          name: e.name,
-          sets: Number(e.sets),
-          reps: e.reps,
-          weight: e.weight,
-          order: i,
-        })),
+        scheduledAt: workoutDate.toISOString(),
       });
       setModalVisible(false);
       Alert.alert('✅ Treino criado!', `Treino enviado para ${selectedStudent.name}.`);
@@ -184,7 +213,7 @@ export default function CoachDashboard() {
       </View>
 
       {/* Search */}
-      <View className="relative mb-8">
+      <View className="relative mb-6">
         <Ionicons name="search-outline" size={20} color="#71717a" style={{ position: 'absolute', left: 16, top: 14, zIndex: 1 }} />
         <TextInput
           className="w-full pl-12 pr-12 py-4 bg-zinc-900 rounded-2xl text-white"
@@ -197,10 +226,87 @@ export default function CoachDashboard() {
         <Ionicons name="options-outline" size={20} color="#71717a" style={{ position: 'absolute', right: 16, top: 14 }} />
       </View>
 
+      {/* Calendário — Semanal */}
+      <View className="mb-6 -mx-5 px-5">
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="font-bold text-lg text-white">Selecionar Data</Text>
+          <View className="flex-row items-center gap-1">
+            <Ionicons name="chevron-back" size={14} color="#71717a" />
+            <Text className="text-zinc-300 text-sm font-medium capitalize">
+              {dashboardDate.toLocaleString('pt-BR', { month: 'long' })}
+            </Text>
+            <Ionicons name="chevron-forward" size={14} color="#71717a" />
+          </View>
+        </View>
+
+        <FlatList
+          data={ALL_DAYS}
+          keyExtractor={(item) => item.date.toDateString()}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={width - 40}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          initialScrollIndex={Math.floor(TODAY_INDEX / 7) * 7}
+          getItemLayout={(_, index) => ({
+            length: (width - 40) / 7,
+            offset: ((width - 40) / 7) * index,
+            index,
+          })}
+          renderItem={({ item }) => {
+            const isSelected = isSameDay(item.date, dashboardDate);
+            return (
+              <TouchableOpacity
+                onPress={() => setDashboardDate(item.date)}
+                activeOpacity={0.8}
+                style={{
+                  width: (width - 40) / 7,
+                  height: 80,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <View
+                  style={{
+                    width: 44,
+                    height: 72,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingTop: 8,
+                    paddingBottom: 8,
+                  }}
+                >
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: 0, left: 0, right: 0, bottom: 0,
+                      backgroundColor: '#b30f15',
+                      borderRadius: 22,
+                      shadowColor: '#b30f15',
+                      shadowOpacity: 0.4,
+                      shadowRadius: 8,
+                      shadowOffset: { width: 0, height: 4 },
+                      elevation: 8,
+                      opacity: isSelected ? 1 : 0,
+                    }}
+                  />
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: isSelected ? 'rgba(255,255,255,0.9)' : '#71717a', marginBottom: 6, zIndex: 1 }}>
+                    {item.day}
+                  </Text>
+                  <Text style={{ fontSize: 18, fontWeight: 'bold', color: isSelected ? '#fff' : '#e4e4e7', zIndex: 1 }}>
+                    {item.num}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          }}
+        />
+      </View>
+
       {/* Section title */}
-      <View className="flex-row items-center justify-between mb-4 px-1">
-        <Text className="text-lg font-bold text-white">Gerenciar Alunos</Text>
-        <Text className="text-primary text-sm font-semibold">Ver todos</Text>
+      <View className="flex-row items-center justify-between mb-2">
+        <Text className="text-lg font-bold text-white">Alunos da Equipe</Text>
+        <Text className="text-primary text-sm font-semibold">{filteredStudents.length} total</Text>
       </View>
     </>
   );
@@ -312,35 +418,39 @@ export default function CoachDashboard() {
               </View>
             </ScrollView>
 
-            {/* Exercícios */}
-            <View className="gap-3 mb-4">
-              {exercises.map((ex, i) => (
-                <View key={i} className="bg-white/10 border border-white/10 p-3 rounded-xl flex-row items-center gap-3">
-                  <Ionicons name="reorder-three" size={16} color="rgba(255,255,255,0.5)" />
+            {/* Nova Funcionalidade de Card: Descrição e YouTube Link */}
+            <View className="mb-6 bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg p-2">
+              <TextInput
+                className="text-white text-base px-3 pt-3 pb-8 text-left"
+                placeholder="Descreva o treino livremente aqui... (Pressione OK no teclado para sair)"
+                placeholderTextColor="#52525b"
+                multiline={true}
+                value={workoutDescription}
+                onChangeText={setWorkoutDescription}
+                style={{ minHeight: 120, textAlignVertical: 'top' }}
+                blurOnSubmit={false}
+              />
+
+              <View className="mt-2 border-t border-zinc-800 pt-3 px-1 mb-1">
+                <View className="flex-row items-center gap-2 bg-[#1c1f26] px-3 py-3 rounded-xl border border-zinc-800">
+                  <Ionicons name="logo-youtube" size={20} color="#ff0000" />
                   <TextInput
                     className="flex-1 text-white text-sm"
-                    placeholder="Nome do exercício (ex: Supino 3x12)"
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                    value={ex.name}
-                    onChangeText={(v) => updateExercise(i, 'name', v)}
+                    placeholder="Link ou ID do vídeo no YouTube (opcional)"
+                    placeholderTextColor="#52525b"
+                    value={youtubeVideoId}
+                    onChangeText={setYoutubeVideoId}
+                    autoCapitalize="none"
+                    autoCorrect={false}
                   />
-                  <Ionicons name="create-outline" size={16} color="rgba(255,255,255,0.5)" />
                 </View>
-              ))}
+              </View>
             </View>
-
-            <TouchableOpacity
-              onPress={addExercise}
-              className="w-full py-3 border-2 border-dashed border-white/30 rounded-xl flex-row items-center justify-center gap-2 mb-6"
-            >
-              <Ionicons name="add-circle-outline" size={18} color="rgba(255,255,255,0.6)" />
-              <Text className="text-white/70 text-sm font-bold tracking-wide">ADD EXERCÍCIO</Text>
-            </TouchableOpacity>
 
             <TouchableOpacity
               onPress={handleCreate}
               disabled={createWorkout.isPending}
-              className="w-full bg-primary py-4 rounded-2xl items-center mb-8"
+              className="w-full bg-primary py-4 rounded-2xl items-center mb-12 mt-2"
               style={{ shadowColor: '#b30f15', shadowOpacity: 0.35, shadowRadius: 12, elevation: 8 }}
             >
               {createWorkout.isPending ? (

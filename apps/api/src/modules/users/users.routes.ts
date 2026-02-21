@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { authenticate, requireCoach } from '../../middleware/auth.middleware';
+import { AuthService } from '../auth/auth.service';
 
 interface JWTPayload {
   id: string;
@@ -56,21 +57,35 @@ export async function usersRoutes(fastify: FastifyInstance) {
     },
   });
 
-  // GET /users/invite-code — Coach: get their invite code
+  const authService = new AuthService(fastify.prisma);
+
+  // GET /users/invite-code — Coach: get their current valid invite code
   fastify.get('/invite-code', {
     preHandler: [requireCoach],
     handler: async (request, reply) => {
       const coach = request.user as JWTPayload;
-      const user = await fastify.prisma.user.findUnique({
-        where: { id: coach.id },
-        select: { inviteCode: true },
+      
+      // Look for the latest unused invite code
+      const invite = await fastify.prisma.inviteCode.findFirst({
+        where: { coachId: coach.id, usedAt: null },
+        orderBy: { createdAt: 'desc' },
       });
 
-      if (!user?.inviteCode) {
-        return reply.status(404).send({ error: 'Código de convite não encontrado.' });
+      if (!invite) {
+        return reply.status(404).send({ error: 'Nenhum código de convite ativo encontrado.' });
       }
 
-      return reply.send({ inviteCode: user.inviteCode });
+      return reply.send({ inviteCode: invite.code });
+    },
+  });
+
+  // POST /users/invite-code — Coach: generate a new invite code
+  fastify.post('/invite-code', {
+    preHandler: [requireCoach],
+    handler: async (request, reply) => {
+      const coach = request.user as JWTPayload;
+      const inviteCode = await authService.generateCoachInviteCode(coach.id);
+      return reply.status(201).send({ inviteCode: inviteCode.code });
     },
   });
 }

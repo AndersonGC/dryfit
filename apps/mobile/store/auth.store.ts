@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { api } from '../lib/api';
 import { storage } from '../lib/storage';
+import { queryClient } from '../lib/queryClient';
 import type { User } from '@dryfit/types';
 
 interface AuthState {
@@ -9,7 +10,7 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
 
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   register: (data: {
     email: string;
     password: string;
@@ -34,7 +35,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     const { token, user } = response.data;
     await storage.setToken(token);
     await storage.setUser(user);
-    set({ user, token, isAuthenticated: true });
+    set({ user, token, isAuthenticated: true, isLoading: false });
+    return user;
   },
 
   register: async (data) => {
@@ -47,6 +49,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     await storage.clear();
+    queryClient.clear();
     set({ user: null, token: null, isAuthenticated: false });
   },
 

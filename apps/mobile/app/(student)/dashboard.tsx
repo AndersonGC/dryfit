@@ -8,34 +8,49 @@ import {
   ActivityIndicator,
   FlatList,
   useWindowDimensions,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '../../store/auth.store';
-import { useActiveWorkout, useCompleteWorkout } from '../../hooks/useWorkouts';
+import { useActiveWorkout, useCompleteWorkout, toLocalDateString } from '../../hooks/useWorkouts';
+import type { WorkoutType } from '@dryfit/types';
+
+const WORKOUT_LABELS: Record<WorkoutType, string> = {
+  STRENGTH: 'FOR TIME',
+  WOD: 'WOD',
+  HIIT: 'EMOM',
+  CUSTOM: 'AMRAP',
+};
 
 const DAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-// Generates a range of days centered on today for horizontal scroll
-const DAYS_BEFORE = 30;
-const DAYS_AFTER = 60;
 const TODAY = new Date();
 
 function buildDays() {
-  return Array.from({ length: DAYS_BEFORE + DAYS_AFTER + 1 }, (_, i) => {
+  const currentDay = TODAY.getDay(); // 0 is Sunday
+  // We want Monday (1) to be the first day of the week, so we calculate days from last Monday
+  const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+
+  // Go back 4 weeks (28 days) exactly to a Monday
+  const daysToSubtract = 28 + daysFromMonday;
+
+  const days = [];
+  // Generate 9 full weeks (63 days)
+  for (let i = 0; i < 63; i++) {
     const d = new Date(TODAY);
-    d.setDate(TODAY.getDate() - DAYS_BEFORE + i);
-    return {
+    d.setDate(TODAY.getDate() - daysToSubtract + i);
+    days.push({
       date: new Date(d),
       day: DAY_LABELS[d.getDay()],
       num: d.getDate(),
       isToday: d.toDateString() === TODAY.toDateString(),
-    };
-  });
+    });
+  }
+  return { days, todayIndex: daysToSubtract };
 }
 
-const ALL_DAYS = buildDays();
-const TODAY_INDEX = DAYS_BEFORE;
+const { days: ALL_DAYS, todayIndex: TODAY_INDEX } = buildDays();
 
 function isSameDay(a: Date, b: Date) {
   return a.toDateString() === b.toDateString();
@@ -43,21 +58,24 @@ function isSameDay(a: Date, b: Date) {
 
 export default function StudentDashboard() {
   const { user } = useAuthStore();
-  const { data: workoutRes, isLoading } = useActiveWorkout();
-  const completeWorkout = useCompleteWorkout();
   const { width } = useWindowDimensions();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const calendarRef = useRef<FlatList>(null);
 
-  // Fixed item width: show ~5 days at a time with gap
-  const DAY_GAP = 4;
-  const dayItemWidth = (width - 40 - DAY_GAP * 4) / 5;
+  const formattedDate = toLocalDateString(selectedDate);
+  const { data: workoutRes, isLoading } = useActiveWorkout(formattedDate);
+  const completeWorkout = useCompleteWorkout(formattedDate);
 
-  // Scroll to today when calendar mounts
+  // The calendar shows exactly 7 days without gap for the container calculation,
+  // we handle the spacing using a wrapper.
+  const dayItemWidth = (width - 40) / 7;
+
+  // Scroll to the start of the current week when calendar mounts
   useEffect(() => {
     setTimeout(() => {
-      calendarRef.current?.scrollToIndex({ index: TODAY_INDEX, animated: false, viewPosition: 0.5 });
+      const currentWeekIndex = Math.floor(TODAY_INDEX / 7) * 7;
+      calendarRef.current?.scrollToIndex({ index: currentWeekIndex, animated: false, viewPosition: 0 });
     }, 100);
   }, []);
 
@@ -89,8 +107,18 @@ export default function StudentDashboard() {
     return 'Boa noite';
   };
 
-  // Workout for the selected day (check by date if available, else use active workout for today)
-  const showWorkout = workout && isSameDay(selectedDate, new Date());
+  // Workout for the selected day
+  const showWorkout = !!workout;
+
+  const openYouTube = useCallback(async (videoId: string) => {
+    const url = `https://www.youtube.com/watch?v=${videoId}`;
+    const supported = await Linking.canOpenURL(url);
+    if (supported) {
+      await Linking.openURL(url);
+    } else {
+      Alert.alert('Erro', 'Não foi possível abrir o vídeo do YouTube.');
+    }
+  }, []);
 
   return (
     <View className="flex-1 bg-[#0f1115]">
@@ -117,11 +145,15 @@ export default function StudentDashboard() {
           </TouchableOpacity>
         </View>
 
-        {/* Calendário — 5 dias */}
+        {/* Calendário — Semanal */}
         <View className="mb-8">
           <View className="flex-row items-center justify-between mb-4">
             <Text className="font-bold text-lg text-white">Calendário</Text>
-            <Text className="text-primary text-sm font-medium capitalize">{monthName}</Text>
+            <View className="flex-row items-center gap-1">
+              <Ionicons name="chevron-back" size={14} color="#71717a" />
+              <Text className="text-zinc-300 text-sm font-medium capitalize">{monthName}</Text>
+              <Ionicons name="chevron-forward" size={14} color="#71717a" />
+            </View>
           </View>
 
           <FlatList
@@ -130,15 +162,18 @@ export default function StudentDashboard() {
             keyExtractor={(item) => item.date.toDateString()}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: DAY_GAP, paddingHorizontal: 0 }}
+            snapToInterval={width - 40}
+            snapToAlignment="start"
+            decelerationRate="fast"
+            contentContainerStyle={{ paddingHorizontal: 0 }}
             getItemLayout={(_, index) => ({
-              length: dayItemWidth + DAY_GAP,
-              offset: (dayItemWidth + DAY_GAP) * index,
+              length: dayItemWidth,
+              offset: dayItemWidth * index,
               index,
             })}
             onScrollToIndexFailed={({ index }) => {
               setTimeout(() => {
-                calendarRef.current?.scrollToIndex({ index, animated: false, viewPosition: 0.5 });
+                calendarRef.current?.scrollToIndex({ index, animated: false, viewPosition: 0 });
               }, 200);
             }}
             renderItem={({ item }) => {
@@ -150,26 +185,49 @@ export default function StudentDashboard() {
                   activeOpacity={0.8}
                   style={{
                     width: dayItemWidth,
-                    height: 88, // fixed height — prevents layout shift when dot is absent
+                    height: 80,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    borderRadius: 16,
-                    backgroundColor: isSelected ? '#b30f15' : '#1c1f26',
-                    borderWidth: isSelected ? 0 : 1,
-                    borderColor: '#27272a',
                   }}
                 >
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: isSelected ? 'rgba(255,255,255,0.8)' : '#a1a1aa', marginBottom: 2 }}>
-                    {item.day}
-                  </Text>
-                  <Text style={{ fontSize: 20, fontWeight: '900', color: '#fff' }}>
-                    {item.num}
-                  </Text>
-                  {/* Dot — always rendered with fixed space to prevent layout shift */}
-                  <View style={{
-                    width: 6, height: 6, borderRadius: 3, marginTop: 4,
-                    backgroundColor: hasWorkout ? (isSelected ? '#fff' : '#b30f15') : 'transparent',
-                  }} />
+                  <View
+                    style={{
+                      width: 44,
+                      height: 72,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingTop: 8,
+                      paddingBottom: 8,
+                    }}
+                  >
+                    {/* Fundo pílula absoluto sempre em tela, alterando apenas OPACIDADE para resolver bug de sombra no Android */}
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: '#b30f15',
+                        borderRadius: 22,
+                        shadowColor: '#b30f15',
+                        shadowOpacity: 0.4,
+                        shadowRadius: 8,
+                        shadowOffset: { width: 0, height: 4 },
+                        elevation: 8,
+                        opacity: isSelected ? 1 : 0,
+                      }}
+                    />
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: isSelected ? 'rgba(255,255,255,0.9)' : '#71717a', marginBottom: 6, zIndex: 1 }}>
+                      {item.day}
+                    </Text>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: isSelected ? '#fff' : '#e4e4e7', zIndex: 1 }}>
+                      {item.num}
+                    </Text>
+                    {hasWorkout && !isSelected && (
+                      <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#b30f15', marginTop: 4, position: 'absolute', bottom: 6, zIndex: 1 }} />
+                    )}
+                    {hasWorkout && isSelected && (
+                      <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#fff', marginTop: 4, position: 'absolute', bottom: 6, zIndex: 1 }} />
+                    )}
+                  </View>
                 </TouchableOpacity>
               );
             }}
@@ -205,7 +263,9 @@ export default function StudentDashboard() {
                 <View className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80" />
                 <View className="absolute bottom-5 left-5 z-20">
                   <View className="bg-primary px-2 py-1 rounded mb-2 self-start">
-                    <Text className="text-[10px] font-bold text-white uppercase tracking-wider">{workout.type}</Text>
+                    <Text className="text-[10px] font-bold text-white uppercase tracking-wider">
+                      {WORKOUT_LABELS[workout.type] || workout.type}
+                    </Text>
                   </View>
                   <Text className="text-2xl font-bold text-white">{workout.title}</Text>
                   <Text className="text-zinc-300 text-sm mt-1">Enviado pelo seu Coach</Text>
@@ -227,14 +287,34 @@ export default function StudentDashboard() {
                 </View>
               )}
 
+              {/* Informações Extras do Treino (Descrição e YouTube) */}
+              {(workout.description || workout.youtubeVideoId) && (
+                <View className="bg-[#1c1f26] border border-zinc-800 rounded-2xl p-4 mb-6">
+                  {workout.description && (
+                    <Text className="text-zinc-300 text-sm leading-relaxed">
+                      {workout.description}
+                    </Text>
+                  )}
+                  {workout.youtubeVideoId && (
+                    <TouchableOpacity
+                      onPress={() => openYouTube(workout.youtubeVideoId as string)}
+                      className={`flex-row items-center justify-center gap-2 bg-[#ff0000]/10 border border-[#ff0000]/30 py-3 rounded-xl ${workout.description ? 'mt-4' : ''}`}
+                    >
+                      <Ionicons name="logo-youtube" size={18} color="#ff0000" />
+                      <Text className="text-[#ff0000] font-bold text-sm">Assistir Vídeo do Treino</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
               <Text className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3">
-                Exercícios ({workout.exercises?.length ?? 0})
+                Exercícios ({((workout as any).exercises as any[])?.length ?? 0})
               </Text>
 
               <View className="gap-3">
-                {(workout.exercises ?? []).map((ex, i) => (
+                {((workout as any).exercises || []).map((ex: any, i: number) => (
                   <View
-                    key={ex.id ?? i}
+                    key={ex.id || i}
                     className="flex-row items-center p-3 bg-[#1c1f26] rounded-2xl border border-zinc-800"
                     style={{ shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, elevation: 2 }}
                   >

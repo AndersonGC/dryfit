@@ -12,6 +12,8 @@ trigger: always_on
 
 > **MANDATORY:** You MUST read the appropriate agent file and its skills BEFORE performing any implementation. This is the highest priority rule.
 
+> All messages must be answered in Brazilian Portuguese (PT-BR).
+
 ### 1. Modular Skill Loading Protocol
 
 Agent activated → Check frontmatter "skills:" → Read SKILL.md (INDEX) → Read specific sections.

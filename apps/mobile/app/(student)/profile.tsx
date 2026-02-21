@@ -5,7 +5,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
 
-const AVATAR_KEY = 'student_avatar_uri';
+const getAvatarKey = (userId: string) => `student_avatar_uri_${userId}`;
 
 export default function StudentProfile() {
   const { user, logout } = useAuthStore();
@@ -13,10 +13,14 @@ export default function StudentProfile() {
 
   // Load persisted avatar on mount
   useEffect(() => {
-    SecureStore.getItemAsync(AVATAR_KEY).then((uri) => {
-      if (uri) setAvatarUri(uri);
+    if (!user?.id) {
+      setAvatarUri(null);
+      return;
+    }
+    SecureStore.getItemAsync(getAvatarKey(user.id)).then((uri) => {
+      setAvatarUri(uri || null);
     });
-  }, []);
+  }, [user?.id]);
 
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -30,10 +34,10 @@ export default function StudentProfile() {
       aspect: [1, 1],
       quality: 0.8,
     });
-    if (!result.canceled && result.assets[0]?.uri) {
+    if (!result.canceled && result.assets[0]?.uri && user?.id) {
       const uri = result.assets[0].uri;
       setAvatarUri(uri);
-      await SecureStore.setItemAsync(AVATAR_KEY, uri);
+      await SecureStore.setItemAsync(getAvatarKey(user.id), uri);
     }
   };
 

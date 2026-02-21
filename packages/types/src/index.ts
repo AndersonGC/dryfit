@@ -13,29 +13,20 @@ export interface User {
   createdAt: string;
 }
 
-export interface Exercise {
-  id: string;
-  name: string;
-  sets?: number;
-  reps?: string;
-  weight?: string;
-  duration?: string;
-  rounds?: number;
-  order: number;
-  workoutId: string;
-}
-
 export interface Workout {
   id: string;
   title: string;
+  description?: string | null;
+  youtubeVideoId?: string | null;
   type: WorkoutType;
   status: WorkoutStatus;
-  exercises: Exercise[];
   coachId: string;
   studentId: string;
   scheduledAt: string;
   completedAt?: string;
   createdAt: string;
+  // Included by the API when fetching for the student view
+  coach?: { name: string };
 }
 
 // API Request/Response types
@@ -58,7 +49,9 @@ export interface RegisterStudentRequest {
 
 export interface CreateWorkoutRequest {
   title: string;
+  description?: string;
+  youtubeVideoId?: string;
   type: WorkoutType;
   studentId: string;
-  exercises: Omit<Exercise, 'id' | 'workoutId'>[];
+  scheduledAt?: string; // ISO 8601 — allows future scheduling
 }

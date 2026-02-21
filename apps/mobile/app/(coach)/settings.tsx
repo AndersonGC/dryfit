@@ -3,17 +3,32 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
-import { useInviteCode } from '../../hooks/useWorkouts';
+import { useInviteCode, useGenerateInviteCode } from '../../hooks/useWorkouts';
 
 export default function CoachSettings() {
   const { user, logout } = useAuthStore();
   const { data: inviteRes } = useInviteCode();
+  const generateInvite = useGenerateInviteCode();
   const inviteCode = inviteRes?.data?.inviteCode ?? '------';
 
   const copyCode = async () => {
     await Clipboard.setStringAsync(inviteCode);
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert('Copiado!', 'Código de convite copiado. Envie para seus alunos!');
+  };
+
+  const handleGenerateCode = () => {
+    Alert.alert(
+      'Novo Código',
+      'Deseja gerar um novo código de convite? O código anterior deixará de funcionar se ainda não tiver sido usado.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Gerar',
+          onPress: () => generateInvite.mutate(),
+        },
+      ]
+    );
   };
 
   return (
@@ -54,12 +69,24 @@ export default function CoachSettings() {
           </View>
           <TouchableOpacity
             onPress={copyCode}
-            className="flex-row items-center justify-center gap-2 bg-primary py-4 rounded-2xl"
+            className="flex-row items-center justify-center gap-2 bg-primary py-4 rounded-2xl mb-3"
             style={{ shadowColor: '#b30f15', shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 }}
             activeOpacity={0.9}
           >
             <Ionicons name="copy-outline" size={18} color="white" />
             <Text className="text-white font-bold">Copiar código</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleGenerateCode}
+            disabled={generateInvite.isPending}
+            className={`flex-row items-center justify-center gap-2 border border-zinc-700 py-4 rounded-2xl ${generateInvite.isPending ? 'opacity-50' : ''}`}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="refresh-outline" size={18} color="#71717a" />
+            <Text className="text-zinc-400 font-bold">
+              {generateInvite.isPending ? 'Gerando...' : 'Gerar novo código'}
+            </Text>
           </TouchableOpacity>
         </View>
 

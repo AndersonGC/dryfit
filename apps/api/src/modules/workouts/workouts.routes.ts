@@ -16,45 +16,26 @@ export async function workoutsRoutes(fastify: FastifyInstance) {
   fastify.post<{
     Body: {
       title: string;
+      description?: string;
+      youtubeVideoId?: string;
       type: 'STRENGTH' | 'WOD' | 'HIIT' | 'CUSTOM';
       studentId: string;
-      exercises: Array<{
-        name: string;
-        sets?: number;
-        reps?: string;
-        weight?: string;
-        duration?: string;
-        rounds?: number;
-        order: number;
-      }>;
+      scheduledAt?: string;
     };
   }>('/', {
     preHandler: [requireCoach],
     schema: {
       body: {
         type: 'object',
-        required: ['title', 'studentId', 'exercises'],
+        required: ['title', 'studentId'],
         properties: {
           title: { type: 'string', minLength: 1 },
+          description: { type: 'string' },
+          youtubeVideoId: { type: 'string' },
           type: { type: 'string', enum: ['STRENGTH', 'WOD', 'HIIT', 'CUSTOM'] },
           studentId: { type: 'string' },
-          exercises: {
-            type: 'array',
-            minItems: 1,
-            items: {
-              type: 'object',
-              required: ['name', 'order'],
-              properties: {
-                name: { type: 'string' },
-                sets: { type: 'number' },
-                reps: { type: 'string' },
-                weight: { type: 'string' },
-                duration: { type: 'string' },
-                rounds: { type: 'number' },
-                order: { type: 'number' },
-              },
-            },
-          },
+          // ISO 8601 date string — e.g. "2026-02-25T14:00:00.000Z"
+          scheduledAt: { type: 'string' },
         },
       },
     },
@@ -73,14 +54,24 @@ export async function workoutsRoutes(fastify: FastifyInstance) {
     },
   });
 
-  // GET /workouts — Student: get active workout | Coach: get all workouts
-  fastify.get('/', {
+  // GET /workouts — Student: get workout by date | Coach: get all workouts
+  // Query: ?date=YYYY-MM-DD (optional, student only — defaults to today UTC)
+  fastify.get<{ Querystring: { date?: string } }>('/', {
     preHandler: [authenticate],
+    schema: {
+      querystring: {
+        type: 'object',
+        properties: {
+          date: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+        },
+      },
+    },
     handler: async (request, reply) => {
       const user = request.user as JWTPayload;
 
       if (user.role === 'STUDENT') {
-        const workout = await workoutsService.getActiveWorkout(user.id);
+        const { date } = request.query;
+        const workout = await workoutsService.getWorkoutByDate(user.id, date);
         return reply.send({ workout });
       }
 
@@ -90,6 +81,31 @@ export async function workoutsRoutes(fastify: FastifyInstance) {
       }
 
       return reply.status(403).send({ error: 'Acesso negado.' });
+    },
+  });
+
+  // GET /workouts/coach/by-date — Coach: get students with hasWorkout flag
+  fastify.get<{ Querystring: { date?: string } }>('/coach/by-date', {
+    preHandler: [requireCoach],
+    schema: {
+      querystring: {
+        type: 'object',
+        required: ['date'],
+        properties: {
+          date: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+        },
+      },
+    },
+    handler: async (request, reply) => {
+      const coach = request.user as JWTPayload;
+      const { date } = request.query;
+      
+      if (!date) {
+        return reply.status(400).send({ error: 'A data é obrigatória.' });
+      }
+
+      const students = await workoutsService.getCoachStudentsByDate(coach.id, date);
+      return reply.send({ students });
     },
   });
 

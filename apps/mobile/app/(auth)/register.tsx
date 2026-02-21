@@ -35,10 +35,6 @@ export default function RegisterScreen() {
       Alert.alert('Atenção', 'As senhas não coincidem.');
       return;
     }
-    if (inviteCode.length !== 6) {
-      Alert.alert('Atenção', 'O código de convite deve ter 6 caracteres.');
-      return;
-    }
     setIsLoading(true);
     try {
       await register({
@@ -156,16 +152,15 @@ export default function RegisterScreen() {
                 <Ionicons name="key-outline" size={20} color="#b30f15" style={{ position: 'absolute', left: 16, top: 16, zIndex: 1 }} />
                 <TextInput
                   className="w-full bg-primary/10 border border-primary/50 text-white pl-12 pr-4 py-4 rounded-2xl font-bold"
-                  placeholder="XXXXXX"
+                  placeholder="DRFT-XXXXX"
                   placeholderTextColor="#b30f1580"
                   autoCapitalize="characters"
-                  maxLength={6}
                   value={inviteCode}
                   onChangeText={(t) => setInviteCode(t.toUpperCase())}
-                  style={{ fontSize: 16, letterSpacing: 4 }}
+                  style={{ fontSize: 16, letterSpacing: 2 }}
                 />
               </View>
-              <Text className="text-zinc-600 text-xs ml-1">Solicite ao seu coach o código de 6 dígitos.</Text>
+              <Text className="text-zinc-600 text-xs ml-1">Solicite ao seu coach o código de convite.</Text>
             </View>
 
             {/* Register Button */}
