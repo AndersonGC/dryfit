@@ -1,0 +1,65 @@
+import { create } from 'zustand';
+import { api } from '../lib/api';
+import { storage } from '../lib/storage';
+import type { User } from '@dryfit/types';
+
+interface AuthState {
+  user: User | null;
+  token: string | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+
+  login: (email: string, password: string) => Promise<void>;
+  register: (data: {
+    email: string;
+    password: string;
+    name: string;
+    inviteCode: string;
+  }) => Promise<void>;
+  logout: () => Promise<void>;
+  loadStoredAuth: () => Promise<void>;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  token: null,
+  isLoading: true,
+  isAuthenticated: false,
+
+  login: async (email, password) => {
+    const response = await api.post<{ token: string; user: User }>('/auth/login', {
+      email,
+      password,
+    });
+    const { token, user } = response.data;
+    await storage.setToken(token);
+    await storage.setUser(user);
+    set({ user, token, isAuthenticated: true });
+  },
+
+  register: async (data) => {
+    const response = await api.post<{ token: string; user: User }>('/auth/register', data);
+    const { token, user } = response.data;
+    await storage.setToken(token);
+    await storage.setUser(user);
+    set({ user, token, isAuthenticated: true });
+  },
+
+  logout: async () => {
+    await storage.clear();
+    set({ user: null, token: null, isAuthenticated: false });
+  },
+
+  loadStoredAuth: async () => {
+    try {
+      const [token, user] = await Promise.all([storage.getToken(), storage.getUser()]);
+      if (token && user) {
+        set({ user, token, isAuthenticated: true, isLoading: false });
+      } else {
+        set({ isLoading: false });
+      }
+    } catch {
+      set({ isLoading: false });
+    }
+  },
+}));

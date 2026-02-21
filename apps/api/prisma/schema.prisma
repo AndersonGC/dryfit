@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  password   String
+  name       String
+  role       Role     @default(STUDENT)
+  inviteCode String?  @unique
+  coachId    String?
+
+  coach    User?  @relation("CoachStudents", fields: [coachId], references: [id])
+  students User[] @relation("CoachStudents")
+
+  coachWorkouts   Workout[] @relation("CoachWorkouts")
+  studentWorkouts Workout[] @relation("StudentWorkouts")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coachId])
+  @@index([inviteCode])
+}
+
+enum Role {
+  COACH
+  STUDENT
+}
+
+model Workout {
+  id          String        @id @default(cuid())
+  title       String
+  type        WorkoutType   @default(STRENGTH)
+  status      WorkoutStatus @default(PENDING)
+  exercises   Exercise[]
+  scheduledAt DateTime      @default(now())
+  completedAt DateTime?
+
+  coachId   String
+  coach     User   @relation("CoachWorkouts", fields: [coachId], references: [id])
+  studentId String
+  student   User   @relation("StudentWorkouts", fields: [studentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId, status])
+  @@index([coachId])
+}
+
+enum WorkoutType {
+  STRENGTH
+  WOD
+  HIIT
+  CUSTOM
+}
+
+enum WorkoutStatus {
+  PENDING
+  COMPLETED
+}
+
+model Exercise {
+  id       String  @id @default(cuid())
+  name     String
+  sets     Int?
+  reps     String?
+  weight   String?
+  duration String?
+  rounds   Int?
+  order    Int
+
+  workoutId String
+  workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+}
