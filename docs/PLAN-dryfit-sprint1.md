@@ -271,26 +271,6 @@ model InviteCode {
 
 ---
 
-#### T08 — Feature: Padronização do Footer
-- **Agente:** `frontend-specialist` (via `mobile-developer`)
-- **Skill:** `mobile-design`
-- **Prioridade:** P2 — consistência visual
-- **Dependências:** nenhuma
-
-**INPUT:**
-- Footer com aparência inconsistente entre telas (Coach e Aluno)
-
-**OUTPUT:**
-- Componente `Footer.tsx` unificado
-- Aplicado em todas as telas que usam bottom navigation
-- Altura, cores e ícones padronizados
-
-**VERIFY:**
-- [ ] Abrir tela do Coach e do Aluno — footers idênticos
-- [ ] Sem discrepância de altura ou cor entre telas
-
----
-
 ### 🟢 P3 — Refatoração de Tema
 
 ---

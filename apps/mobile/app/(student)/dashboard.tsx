@@ -102,7 +102,7 @@ export default function StudentDashboard() {
   };
 
   return (
-    <View className="flex-1 bg-[#0f1115]">
+    <View className="flex-1 bg-[#FAF8F5] dark:bg-[#0f1115]">
       <View className="h-12" />
 
       <ScrollView
@@ -113,16 +113,16 @@ export default function StudentDashboard() {
         {/* Header */}
         <View className="flex-row items-center justify-between mb-6">
           <View className="flex-row items-center gap-3">
-            <View className="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 items-center justify-center overflow-hidden">
-              <Ionicons name="person" size={20} color="#71717a" />
+            <View className="w-10 h-10 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 items-center justify-center overflow-hidden">
+              <Ionicons name="person" size={20} color="#a1a1aa" className="dark:text-[#71717a]" />
             </View>
             <View>
-              <Text className="text-xs text-zinc-400">{greeting()},</Text>
-              <Text className="text-lg font-bold text-white">{user?.name?.split(' ')[0] ?? 'Atleta'} 👋</Text>
+              <Text className="text-xs text-zinc-500 dark:text-zinc-400">{greeting()},</Text>
+              <Text className="text-lg font-bold text-zinc-900 dark:text-white">{user?.name?.split(' ')[0] ?? 'Atleta'} 👋</Text>
             </View>
           </View>
-          <TouchableOpacity className="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 items-center justify-center">
-            <Ionicons name="notifications-outline" size={20} color="#9ca3af" />
+          <TouchableOpacity className="w-10 h-10 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 items-center justify-center">
+            <Ionicons name="notifications-outline" size={20} color="#a1a1aa" className="dark:text-[#9ca3af]" />
           </TouchableOpacity>
         </View>
 
@@ -161,10 +161,12 @@ export default function StudentDashboard() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     borderRadius: 16,
-                    backgroundColor: isSelected ? '#b30f15' : '#1c1f26',
+                    backgroundColor: isSelected ? '#b30f15' : 'transparent',
                     borderWidth: isSelected ? 0 : 1,
-                    borderColor: '#27272a',
+                    borderColor: isSelected ? 'transparent' : '#e4e4e7', // Light border as default
+                    // In dark mode we override via tailwind or conditionally here, but let's use conditional styles
                   }}
+                  className={`dark:border-zinc-800 ${isSelected ? '' : 'dark:bg-[#1c1f26]'}`}
                 >
                   <Text style={{ fontSize: 11, fontWeight: '600', color: isSelected ? 'rgba(255,255,255,0.8)' : '#a1a1aa', marginBottom: 2 }}>
                     {item.day}
@@ -186,9 +188,9 @@ export default function StudentDashboard() {
         {/* Treino do Dia */}
         <View className="mb-4">
           <View className="flex-row items-center justify-between mb-4">
-            <Text className="font-bold text-xl text-white">Treino do Dia</Text>
+            <Text className="font-bold text-xl text-zinc-900 dark:text-white">Treino do Dia</Text>
             {showWorkout && (
-              <Text className="text-sm text-zinc-400">45 min</Text>
+              <Text className="text-sm text-zinc-500 dark:text-zinc-400">45 min</Text>
             )}
           </View>
 
@@ -197,10 +199,10 @@ export default function StudentDashboard() {
               <ActivityIndicator color="#b30f15" size="large" />
             </View>
           ) : !showWorkout ? (
-            <View className="bg-[#1c1f26] border border-zinc-800 rounded-3xl p-8 items-center">
-              <Ionicons name="barbell-outline" size={48} color="#3f3f46" />
-              <Text className="text-white font-bold mt-4 text-lg">Sem treino nessa data</Text>
-              <Text className="text-zinc-500 text-sm mt-2 text-center">
+            <View className="bg-white dark:bg-[#1c1f26] border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 items-center">
+              <Ionicons name="barbell-outline" size={48} color="#a1a1aa" className="dark:text-[#3f3f46]" />
+              <Text className="text-zinc-900 dark:text-white font-bold mt-4 text-lg">Sem treino nessa data</Text>
+              <Text className="text-zinc-500 dark:text-zinc-400 text-sm mt-2 text-center">
                 Seu coach ainda não enviou treino para esse dia. Descanse bem!
               </Text>
             </View>
@@ -236,7 +238,7 @@ export default function StudentDashboard() {
                 </View>
               )}
 
-              <Text className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3">
+              <Text className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-3 mt-4">
                 Exercícios ({workout.exercises?.length ?? 0})
               </Text>
 
@@ -244,33 +246,33 @@ export default function StudentDashboard() {
                 {(workout.exercises ?? []).map((ex, i) => (
                   <View
                     key={ex.id ?? i}
-                    className="flex-row items-center p-3 bg-[#1c1f26] rounded-2xl border border-zinc-800"
-                    style={{ shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, elevation: 2 }}
+                    className="flex-row items-center p-3 bg-white dark:bg-[#1c1f26] rounded-2xl border border-zinc-200 dark:border-zinc-800"
+                    style={{ shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, elevation: 1 }}
                   >
-                    <View className="w-16 h-16 rounded-xl bg-zinc-800 items-center justify-center flex-shrink-0">
-                      <Ionicons name="barbell-outline" size={26} color="#3f3f46" />
+                    <View className="w-16 h-16 rounded-xl bg-zinc-100 dark:bg-zinc-800 items-center justify-center flex-shrink-0">
+                      <Ionicons name="barbell-outline" size={26} color="#a1a1aa" className="dark:text-[#3f3f46]" />
                     </View>
                     <View className="flex-1 ml-4">
-                      <Text className="font-bold text-white text-sm">{ex.name}</Text>
+                      <Text className="font-bold text-zinc-900 dark:text-white text-sm">{ex.name}</Text>
                       <View className="flex-row gap-4 mt-1">
                         <View className="flex-row items-center gap-1">
-                          <Ionicons name="repeat-outline" size={14} color="#9ca3af" />
-                          <Text className="text-xs text-zinc-400">{ex.sets} Sets</Text>
+                          <Ionicons name="repeat-outline" size={14} color="#a1a1aa" className="dark:text-[#9ca3af]" />
+                          <Text className="text-xs text-zinc-500 dark:text-zinc-400">{ex.sets} Sets</Text>
                         </View>
                         <View className="flex-row items-center gap-1">
-                          <Ionicons name="barbell-outline" size={14} color="#9ca3af" />
-                          <Text className="text-xs text-zinc-400">{ex.reps} Reps</Text>
+                          <Ionicons name="barbell-outline" size={14} color="#a1a1aa" className="dark:text-[#9ca3af]" />
+                          <Text className="text-xs text-zinc-500 dark:text-zinc-400">{ex.reps} Reps</Text>
                         </View>
                         {ex.weight && (
                           <View className="flex-row items-center gap-1">
-                            <Ionicons name="fitness-outline" size={14} color="#9ca3af" />
-                            <Text className="text-xs text-zinc-400">{ex.weight}kg</Text>
+                            <Ionicons name="fitness-outline" size={14} color="#a1a1aa" className="dark:text-[#9ca3af]" />
+                            <Text className="text-xs text-zinc-500 dark:text-zinc-400">{ex.weight}kg</Text>
                           </View>
                         )}
                       </View>
                     </View>
                     <TouchableOpacity className="w-8 h-8 rounded-full items-center justify-center">
-                      <Ionicons name="information-circle-outline" size={20} color="#3f3f46" />
+                      <Ionicons name="information-circle-outline" size={20} color="#a1a1aa" className="dark:text-[#3f3f46]" />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -310,7 +312,7 @@ export default function StudentDashboard() {
       )}
 
       {/* Home indicator */}
-      <View style={{ position: 'absolute', bottom: 4, alignSelf: 'center', width: 128, height: 4, backgroundColor: '#3f3f46', borderRadius: 999 }} />
+      <View style={{ position: 'absolute', bottom: 4, alignSelf: 'center', width: 128, height: 4, borderRadius: 999 }} className="bg-zinc-300 dark:bg-[#3f3f46]" />
     </View>
   );
 }

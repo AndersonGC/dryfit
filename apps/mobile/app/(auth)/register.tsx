@@ -56,10 +56,10 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#0a0a0a]">
+    <View className="flex-1 bg-[#FAF8F5] dark:bg-[#0a0a0a]">
       {/* Background glows */}
-      <View className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-primary/20 rounded-full" pointerEvents="none" />
-      <View className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-primary/10 rounded-full" pointerEvents="none" />
+      <View className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-primary/20 dark:bg-primary/20 rounded-full" pointerEvents="none" />
+      <View className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-primary/10 dark:bg-primary/10 rounded-full" pointerEvents="none" />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-8" keyboardShouldPersistTaps="handled">
@@ -70,21 +70,21 @@ export default function RegisterScreen() {
             <TouchableOpacity onPress={() => router.back()} className="mb-6" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="arrow-back" size={24} color="#a1a1aa" />
             </TouchableOpacity>
-            <Text className="text-2xl font-bold text-white tracking-tight">Criar conta</Text>
-            <Text className="text-zinc-400 mt-1 text-sm">Você precisa de um código de convite do seu coach.</Text>
+            <Text className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">Criar conta</Text>
+            <Text className="text-zinc-500 dark:text-zinc-400 mt-1 text-sm">Você precisa de um código de convite do seu coach.</Text>
           </View>
 
           {/* Form */}
           <View className="gap-5">
             {/* Name */}
             <View className="gap-2">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-zinc-400 ml-1">Nome completo</Text>
+              <Text className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 ml-1">Nome completo</Text>
               <View className="relative">
                 <Ionicons name="person-outline" size={20} color="#a1a1aa" style={{ position: 'absolute', left: 16, top: 16, zIndex: 1 }} />
                 <TextInput
-                  className="w-full bg-zinc-900/50 border border-zinc-800 text-white pl-12 pr-4 py-4 rounded-2xl"
+                  className="w-full bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white pl-12 pr-4 py-4 rounded-2xl"
                   placeholder="Seu nome"
-                  placeholderTextColor="#52525b"
+                  placeholderTextColor="#a1a1aa"
                   value={name}
                   onChangeText={setName}
                   style={{ fontSize: 15 }}
@@ -94,13 +94,13 @@ export default function RegisterScreen() {
 
             {/* Email */}
             <View className="gap-2">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-zinc-400 ml-1">E-mail</Text>
+              <Text className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 ml-1">E-mail</Text>
               <View className="relative">
                 <Ionicons name="at-outline" size={20} color="#a1a1aa" style={{ position: 'absolute', left: 16, top: 16, zIndex: 1 }} />
                 <TextInput
-                  className="w-full bg-zinc-900/50 border border-zinc-800 text-white pl-12 pr-4 py-4 rounded-2xl"
+                  className="w-full bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white pl-12 pr-4 py-4 rounded-2xl"
                   placeholder="name@email.com"
-                  placeholderTextColor="#52525b"
+                  placeholderTextColor="#a1a1aa"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={email}
@@ -112,33 +112,33 @@ export default function RegisterScreen() {
 
             {/* Password */}
             <View className="gap-2">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-zinc-400 ml-1">Senha</Text>
+              <Text className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 ml-1">Senha</Text>
               <View className="relative">
                 <Ionicons name="lock-closed-outline" size={20} color="#a1a1aa" style={{ position: 'absolute', left: 16, top: 16, zIndex: 1 }} />
                 <TextInput
-                  className="w-full bg-zinc-900/50 border border-zinc-800 text-white pl-12 pr-14 py-4 rounded-2xl"
+                  className="w-full bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white pl-12 pr-14 py-4 rounded-2xl"
                   placeholder="••••••••"
-                  placeholderTextColor="#52525b"
+                  placeholderTextColor="#a1a1aa"
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={setPassword}
                   style={{ fontSize: 15 }}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="absolute right-4 top-4">
-                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#71717a" />
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#a1a1aa" />
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* Confirm Password */}
             <View className="gap-2">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-zinc-400 ml-1">Confirmar Senha</Text>
+              <Text className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 ml-1">Confirmar Senha</Text>
               <View className="relative">
                 <Ionicons name="lock-closed-outline" size={20} color="#a1a1aa" style={{ position: 'absolute', left: 16, top: 16, zIndex: 1 }} />
                 <TextInput
-                  className="w-full bg-zinc-900/50 border border-zinc-800 text-white pl-12 pr-4 py-4 rounded-2xl"
+                  className="w-full bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white pl-12 pr-4 py-4 rounded-2xl"
                   placeholder="••••••••"
-                  placeholderTextColor="#52525b"
+                  placeholderTextColor="#a1a1aa"
                   secureTextEntry
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -149,11 +149,11 @@ export default function RegisterScreen() {
 
             {/* Invite Code — destacado */}
             <View className="gap-2">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-zinc-400 ml-1">Código de Convite</Text>
+              <Text className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 ml-1">Código de Convite</Text>
               <View className="relative">
                 <Ionicons name="key-outline" size={20} color="#b30f15" style={{ position: 'absolute', left: 16, top: 16, zIndex: 1 }} />
                 <TextInput
-                  className="w-full bg-primary/10 border border-primary/50 text-white pl-12 pr-4 py-4 rounded-2xl font-bold"
+                  className="w-full bg-primary/10 border border-primary/50 text-zinc-900 dark:text-white pl-12 pr-4 py-4 rounded-2xl font-bold"
                   placeholder="DRFT-XXXX"
                   placeholderTextColor="#b30f1580"
                   autoCapitalize="characters"
@@ -163,7 +163,7 @@ export default function RegisterScreen() {
                   style={{ fontSize: 16, letterSpacing: 4 }}
                 />
               </View>
-              <Text className="text-zinc-600 text-xs ml-1">Solicite ao seu coach o código de acesso (ex: DRFT-ABCD).</Text>
+              <Text className="text-zinc-500 dark:text-zinc-600 text-xs ml-1">Solicite ao seu coach o código de acesso (ex: DRFT-ABCD).</Text>
             </View>
 
             {/* Register Button */}
@@ -186,7 +186,7 @@ export default function RegisterScreen() {
           </View>
 
           <View className="flex-1 justify-end pb-10 items-center mt-8">
-            <Text className="text-zinc-400 text-sm">
+            <Text className="text-zinc-500 dark:text-zinc-400 text-sm">
               Já tem uma conta?{' '}
               <Text className="text-primary font-bold" onPress={() => router.back()}>
                 Fazer login
@@ -195,7 +195,7 @@ export default function RegisterScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <View className="w-32 h-1 bg-zinc-800 rounded-full self-center mb-2" />
+      <View className="w-32 h-1 bg-zinc-300 dark:bg-zinc-800 rounded-full self-center mb-2" />
     </View>
   );
 }

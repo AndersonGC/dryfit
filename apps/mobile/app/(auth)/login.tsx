@@ -43,15 +43,15 @@ export default function LoginScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#0a0a0a]">
+    <View className="flex-1 bg-[#FAF8F5] dark:bg-[#0a0a0a]">
       {/* Background glows */}
       <View
-        className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-primary/20 rounded-full"
+        className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-primary/20 dark:bg-primary/20 rounded-full"
         style={{ filter: undefined }}
         pointerEvents="none"
       />
       <View
-        className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-primary/10 rounded-full"
+        className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-primary/10 dark:bg-primary/10 rounded-full"
         pointerEvents="none"
       />
 
@@ -71,10 +71,10 @@ export default function LoginScreen() {
               style={{ width: 112, height: 112, borderRadius: 28, marginBottom: 20 }}
               resizeMode="contain"
             />
-            <Text className="text-2xl font-bold text-white tracking-tight">
+            <Text className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">
               DryFit
             </Text>
-            <Text className="text-zinc-400 mt-1 text-sm">
+            <Text className="text-zinc-500 dark:text-zinc-400 mt-1 text-sm">
               Treine mais. Evolua sempre.
             </Text>
           </View>
@@ -83,7 +83,7 @@ export default function LoginScreen() {
           <View className="gap-5">
             {/* Email */}
             <View className="gap-2">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-zinc-400 ml-1">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 ml-1">
                 Email Address
               </Text>
               <View className="relative">
@@ -94,9 +94,9 @@ export default function LoginScreen() {
                   style={{ position: 'absolute', left: 16, top: 16, zIndex: 1 }}
                 />
                 <TextInput
-                  className="w-full bg-zinc-900/50 border border-zinc-800 text-white pl-12 pr-4 py-4 rounded-2xl"
+                  className="w-full bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white pl-12 pr-4 py-4 rounded-2xl"
                   placeholder="name@email.com"
-                  placeholderTextColor="#52525b"
+                  placeholderTextColor="#a1a1aa"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={email}
@@ -108,7 +108,7 @@ export default function LoginScreen() {
 
             {/* Password */}
             <View className="gap-2">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-zinc-400 ml-1">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 ml-1">
                 Password
               </Text>
               <View className="relative">
@@ -119,9 +119,9 @@ export default function LoginScreen() {
                   style={{ position: 'absolute', left: 16, top: 16, zIndex: 1 }}
                 />
                 <TextInput
-                  className="w-full bg-zinc-900/50 border border-zinc-800 text-white pl-12 pr-14 py-4 rounded-2xl"
+                  className="w-full bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white pl-12 pr-14 py-4 rounded-2xl"
                   placeholder="••••••••"
-                  placeholderTextColor="#52525b"
+                  placeholderTextColor="#a1a1aa"
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={setPassword}
@@ -135,7 +135,7 @@ export default function LoginScreen() {
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={20}
-                    color="#71717a"
+                    color="#a1a1aa"
                   />
                 </TouchableOpacity>
               </View>
@@ -167,16 +167,16 @@ export default function LoginScreen() {
 
           {/* Divider */}
           <View className="mt-8 mb-6 flex-row items-center gap-4">
-            <View className="h-px flex-1 bg-zinc-800" />
-            <Text className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
+            <View className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+            <Text className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
               Ou acesse com
             </Text>
-            <View className="h-px flex-1 bg-zinc-800" />
+            <View className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
           </View>
 
           {/* Sign Up Link */}
           <View className="flex-1 justify-end pb-10 items-center">
-            <Text className="text-zinc-400 text-sm">
+            <Text className="text-zinc-500 dark:text-zinc-400 text-sm">
               Não tem uma conta?{' '}
               <Text
                 className="text-primary font-bold"
@@ -185,7 +185,7 @@ export default function LoginScreen() {
                 Criar conta
               </Text>
             </Text>
-            <Text className="text-zinc-600 text-xs mt-3 text-center">
+            <Text className="text-zinc-400 dark:text-zinc-600 text-xs mt-3 text-center">
               Professor? Use as credenciais fornecidas pelos administradores.
             </Text>
           </View>
@@ -193,7 +193,7 @@ export default function LoginScreen() {
       </KeyboardAvoidingView>
 
       {/* Home indicator */}
-      <View className="w-32 h-1 bg-zinc-800 rounded-full self-center mb-2" />
+      <View className="w-32 h-1 bg-zinc-300 dark:bg-zinc-800 rounded-full self-center mb-2" />
     </View>
   );
 }
