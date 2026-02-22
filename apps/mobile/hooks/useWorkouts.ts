@@ -113,11 +113,13 @@ export function useCompleteWorkout(date?: string) {
   const dateKey = date ?? toLocalDateString(new Date());
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (workoutId: string) => {
-      const response = await api.patch<Workout>(`/workouts/${workoutId}/complete`, {});
+    mutationFn: async ({ workoutId, studentFeedback }: { workoutId: string; studentFeedback?: string }) => {
+      const response = await api.patch<Workout>(`/workouts/${workoutId}/complete`, {
+        studentFeedback,
+      });
       return response.data;
     },
-    onMutate: async (workoutId) => {
+    onMutate: async ({ workoutId, studentFeedback }) => {
       // Cancel any in-flight refetches so they don't overwrite our optimistic update
       await queryClient.cancelQueries({ queryKey: ['workout', user?.id, dateKey] });
 
@@ -134,6 +136,7 @@ export function useCompleteWorkout(date?: string) {
               ...old.data.workout,
               status: 'COMPLETED' as const,
               completedAt: new Date().toISOString(),
+              studentFeedback,
             },
           },
         };

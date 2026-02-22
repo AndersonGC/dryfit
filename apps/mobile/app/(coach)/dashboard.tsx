@@ -16,6 +16,7 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
 import { useStudentsByDate, useCreateWorkout, toLocalDateString } from '../../hooks/useWorkouts';
+import { StudentCard, type StudentWithWorkout } from '../../components/StudentCard';
 import type { User, WorkoutType } from '@dryfit/types';
 
 const WORKOUT_TYPES: WorkoutType[] = ['STRENGTH', 'WOD', 'HIIT', 'CUSTOM'];
@@ -26,12 +27,7 @@ const WORKOUT_LABELS: Record<WorkoutType, string> = {
   CUSTOM: 'AMRAP',
 };
 
-function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
+
 
 function formatDateBR(date: Date): string {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -65,54 +61,6 @@ function isSameDay(a: Date, b: Date) {
   return a.toDateString() === b.toDateString();
 }
 
-interface StudentCardProps {
-  student: User & { hasWorkout?: boolean };
-  isSelected: boolean;
-  onSelect: () => void;
-  onBuild: () => void;
-}
-
-const StudentCard = ({ student, isSelected, onSelect, onBuild }: StudentCardProps) => (
-  <TouchableOpacity
-    onPress={onSelect}
-    activeOpacity={0.85}
-    className={`p-4 rounded-3xl flex-row items-center justify-between mb-4 border ${isSelected
-      ? 'bg-primary border-primary'
-      : 'bg-zinc-900 border-zinc-800'
-      }`}
-    style={isSelected ? { shadowColor: '#b30f15', shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 } : {}}
-  >
-    <View className="flex-row items-center gap-3">
-      <View
-        className={`w-14 h-14 rounded-2xl items-center justify-center relative ${isSelected ? 'bg-white/20 border border-white/20' : 'bg-zinc-800'
-          }`}
-      >
-        <Ionicons name="person" size={28} color={isSelected ? 'white' : '#71717a'} />
-        {student.hasWorkout && (
-          <View className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[#18181b] items-center justify-center">
-            <Ionicons name="checkmark" size={10} color="white" />
-          </View>
-        )}
-      </View>
-      <View>
-        <Text className={`font-bold text-base ${isSelected ? 'text-white' : 'text-white'}`}>
-          {student.name}
-        </Text>
-        <Text className={`text-xs mt-0.5 ${isSelected ? 'text-white/70' : 'text-zinc-500'}`}>
-          {student.hasWorkout ? 'Treino Agendado ✅' : 'Aguardando Treino ⏳'}
-        </Text>
-      </View>
-    </View>
-    <TouchableOpacity
-      onPress={onBuild}
-      className={`px-4 py-2 rounded-xl ${isSelected ? 'bg-white/20' : 'bg-primary'}`}
-      style={!isSelected ? { shadowColor: '#b30f15', shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 } : {}}
-    >
-      <Text className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-white'}`}>Build</Text>
-    </TouchableOpacity>
-  </TouchableOpacity>
-);
-
 export default function CoachDashboard() {
   const { user } = useAuthStore();
   const { width } = useWindowDimensions();
@@ -133,8 +81,12 @@ export default function CoachDashboard() {
   const [workoutDate, setWorkoutDate] = useState<Date>(new Date());
   const [showIOSPicker, setShowIOSPicker] = useState(false);
 
+  // Modal for Feedback
+  const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+  const [selectedStudentForFeedback, setSelectedStudentForFeedback] = useState<StudentWithWorkout | null>(null);
+
   const { data: studentsData, isLoading: loadingStudents } = useStudentsByDate(toLocalDateString(dashboardDate));
-  const students: (User & { hasWorkout: boolean })[] = (studentsData?.data as any)?.students ?? [];
+  const students: StudentWithWorkout[] = (studentsData?.data as any)?.students ?? [];
 
   const filteredStudents = useMemo(
     () => students.filter((s) => s.name.toLowerCase().includes(search.toLowerCase())),
@@ -149,6 +101,15 @@ export default function CoachDashboard() {
     setWorkoutDate(dashboardDate); // Pre-select the date that the coach was looking at
     setModalVisible(true);
   }, [dashboardDate]);
+
+  const handleCardPress = useCallback((student: StudentWithWorkout) => {
+    if (student.workoutStatus === 'COMPLETED' && student.studentFeedback) {
+      setSelectedStudentForFeedback(student);
+      setFeedbackModalVisible(true);
+    } else {
+      openBuilder(student as User);
+    }
+  }, [openBuilder]);
 
   const openDatePicker = () => {
     if (Platform.OS === 'android') {
@@ -185,7 +146,7 @@ export default function CoachDashboard() {
         description: workoutDescription.trim(),
         youtubeVideoId: parsedVideoId || undefined,
         type: workoutType,
-        scheduledAt: workoutDate.toISOString(),
+        scheduledAt: `${toLocalDateString(workoutDate)}T12:00:00.000Z`,
       });
       setModalVisible(false);
       Alert.alert('✅ Treino criado!', `Treino enviado para ${selectedStudent.name}.`);
@@ -296,6 +257,9 @@ export default function CoachDashboard() {
                   <Text style={{ fontSize: 18, fontWeight: 'bold', color: isSelected ? '#fff' : '#e4e4e7', zIndex: 1 }}>
                     {item.num}
                   </Text>
+                  {item.isToday && (
+                    <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: isSelected ? '#fff' : '#b30f15', marginTop: 4, position: 'absolute', bottom: 6, zIndex: 1 }} />
+                  )}
                 </View>
               </TouchableOpacity>
             );
@@ -336,9 +300,7 @@ export default function CoachDashboard() {
         renderItem={({ item }) => (
           <StudentCard
             student={item}
-            isSelected={selectedStudent?.id === item.id}
-            onSelect={() => setSelectedStudent((s) => (s?.id === item.id ? null : item))}
-            onBuild={() => openBuilder(item)}
+            onPress={() => handleCardPress(item)}
           />
         )}
       />
@@ -461,6 +423,43 @@ export default function CoachDashboard() {
             </TouchableOpacity>
           </ScrollView>
         </View>
+      </Modal>
+
+      {/* Observation Modal */}
+      <Modal
+        visible={feedbackModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setFeedbackModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}
+          activeOpacity={1}
+          onPress={() => setFeedbackModalVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{ width: '85%', backgroundColor: '#18181b', borderRadius: 32, padding: 24 }}
+          >
+            <View className="flex-row items-center gap-3 mb-6">
+              <View className="w-12 h-12 bg-red-900/30 rounded-2xl items-center justify-center">
+                <Ionicons name="chatbubble-outline" size={24} color="#ef4444" />
+              </View>
+              <Text className="text-xl font-bold text-white flex-1 leading-tight">
+                Student Feedback
+                {'\n'}
+                <Text className="text-zinc-400 text-sm font-medium">{selectedStudentForFeedback?.name}</Text>
+              </Text>
+            </View>
+
+            <View className="bg-[#27272a] rounded-2xl py-5 px-5 min-h-[120px]">
+              <Text className="text-zinc-300 text-base leading-relaxed italic">
+                &quot;{selectedStudentForFeedback?.studentFeedback}&quot;
+              </Text>
+            </View>
+
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );

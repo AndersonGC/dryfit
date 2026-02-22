@@ -48,6 +48,7 @@ model Workout {
   status         WorkoutStatus @default(PENDING)
   scheduledAt    DateTime      @default(now())
   completedAt    DateTime?
+  studentFeedback String?       @db.Text
 
   coachId   String
   coach     User   @relation("CoachWorkouts", fields: [coachId], references: [id])

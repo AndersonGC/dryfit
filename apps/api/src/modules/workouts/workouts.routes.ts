@@ -110,12 +110,28 @@ export async function workoutsRoutes(fastify: FastifyInstance) {
   });
 
   // PATCH /workouts/:id/complete — Student only
-  fastify.patch<{ Params: { id: string } }>('/:id/complete', {
+  fastify.patch<{
+    Params: { id: string };
+    Body: { studentFeedback?: string };
+  }>('/:id/complete', {
     preHandler: [requireStudent],
+    schema: {
+      body: {
+        type: 'object',
+        properties: {
+          studentFeedback: { type: 'string' },
+        },
+      },
+    },
     handler: async (request, reply) => {
       try {
         const user = request.user as JWTPayload;
-        const workout = await workoutsService.completeWorkout(request.params.id, user.id);
+        const { studentFeedback } = request.body || {};
+        const workout = await workoutsService.completeWorkout(
+          request.params.id,
+          user.id,
+          studentFeedback
+        );
         return reply.send(workout);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao concluir treino.';

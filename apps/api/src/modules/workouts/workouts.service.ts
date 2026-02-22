@@ -90,7 +90,7 @@ export class WorkoutsService {
     });
   }
 
-  async completeWorkout(workoutId: string, studentId: string) {
+  async completeWorkout(workoutId: string, studentId: string, studentFeedback?: string) {
     const workout = await this.prisma.workout.findFirst({
       where: { id: workoutId, studentId },
     });
@@ -101,7 +101,11 @@ export class WorkoutsService {
 
     return this.prisma.workout.update({
       where: { id: workoutId },
-      data: { status: 'COMPLETED', completedAt: new Date() },
+      data: {
+        status: 'COMPLETED',
+        completedAt: new Date(),
+        studentFeedback,
+      },
     });
   }
 
@@ -127,16 +131,23 @@ export class WorkoutsService {
       },
       select: {
         studentId: true,
+        status: true,
+        studentFeedback: true,
       },
     });
 
-    // 3. Map students and add hasWorkout flag
-    const studentsWithWorkouts = new Set(workouts.map((w) => w.studentId));
+    // 3. Map students and add workout details
+    const workoutsByStudent = new Map(workouts.map((w) => [w.studentId, w]));
     
-    const mappedStudents = students.map((student) => ({
-      ...student,
-      hasWorkout: studentsWithWorkouts.has(student.id),
-    }));
+    const mappedStudents = students.map((student) => {
+      const workout = workoutsByStudent.get(student.id);
+      return {
+        ...student,
+        hasWorkout: !!workout,
+        workoutStatus: workout?.status || null,
+        studentFeedback: workout?.studentFeedback || null,
+      };
+    });
 
     // 4. Sort: students WITHOUT workout first (hasWorkout: false), then by name
     return mappedStudents.sort((a, b) => {
