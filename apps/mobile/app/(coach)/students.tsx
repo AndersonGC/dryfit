@@ -1,27 +1,9 @@
-import { View, Text, TouchableOpacity, Alert, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuthStore } from '../../store/auth.store';
 import { useStudents } from '../../hooks/useWorkouts';
 import type { User } from '@dryfit/types';
 
-function StudentItem({ item }: { item: User }) {
-  return (
-    <View className="flex-row items-center justify-between px-5 py-4 border-b border-zinc-800/60">
-      <View className="flex-row items-center gap-3">
-        <View className="w-12 h-12 rounded-2xl bg-zinc-800 items-center justify-center">
-          <Ionicons name="person" size={22} color="#71717a" />
-        </View>
-        <View>
-          <Text className="text-white font-bold">{item.name}</Text>
-          <Text className="text-zinc-500 text-xs">{item.email}</Text>
-        </View>
-      </View>
-      <View className="bg-zinc-800 px-3 py-1 rounded-full">
-        <Text className="text-xs text-zinc-400 font-medium">Ativo</Text>
-      </View>
-    </View>
-  );
-}
+import { StudentCard } from '../../components/StudentCard';
 
 export default function CoachStudents() {
   const { data, isLoading } = useStudents();
@@ -53,7 +35,13 @@ export default function CoachStudents() {
             </View>
           )
         }
-        renderItem={({ item }) => <StudentItem item={item} />}
+        renderItem={({ item }) => (
+          <StudentCard
+            student={item}
+            onPress={() => { }}
+            showOnlyActiveStatus={true}
+          />
+        )}
       />
     </View>
   );

@@ -24,6 +24,7 @@ export interface Workout {
   studentId: string;
   scheduledAt: string;
   completedAt?: string;
+  studentFeedback?: string | null;
   createdAt: string;
   // Included by the API when fetching for the student view
   coach?: { name: string };

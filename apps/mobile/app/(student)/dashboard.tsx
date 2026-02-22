@@ -5,13 +5,15 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Modal,
+  TextInput,
   ActivityIndicator,
   FlatList,
   useWindowDimensions,
-  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import YoutubePlayer from 'react-native-youtube-iframe';
 import { useAuthStore } from '../../store/auth.store';
 import { useActiveWorkout, useCompleteWorkout, toLocalDateString } from '../../hooks/useWorkouts';
 import type { WorkoutType } from '@dryfit/types';
@@ -63,6 +65,9 @@ export default function StudentDashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const calendarRef = useRef<FlatList>(null);
 
+  const [completeModalVisible, setCompleteModalVisible] = useState(false);
+  const [observation, setObservation] = useState('');
+
   const formattedDate = toLocalDateString(selectedDate);
   const { data: workoutRes, isLoading } = useActiveWorkout(formattedDate);
   const completeWorkout = useCompleteWorkout(formattedDate);
@@ -82,23 +87,25 @@ export default function StudentDashboard() {
   const workout = workoutRes?.data?.workout;
   const monthName = selectedDate.toLocaleString('pt-BR', { month: 'long' });
 
-  const handleComplete = useCallback(async () => {
+  const handleComplete = useCallback(() => {
     if (!workout) return;
-    Alert.alert('Marcar como concluído?', 'Você quer finalizar o treino de hoje?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Concluir!',
-        onPress: async () => {
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          try {
-            await completeWorkout.mutateAsync(workout.id);
-          } catch {
-            Alert.alert('Erro', 'Não foi possível marcar o treino como concluído.');
-          }
-        },
-      },
-    ]);
-  }, [workout, completeWorkout]);
+    setObservation('');
+    setCompleteModalVisible(true);
+  }, [workout]);
+
+  const confirmComplete = async () => {
+    if (!workout) return;
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try {
+      await completeWorkout.mutateAsync({
+        workoutId: workout.id,
+        studentFeedback: observation.trim() || undefined
+      });
+      setCompleteModalVisible(false);
+    } catch {
+      Alert.alert('Erro', 'Não foi possível marcar o treino como concluído.');
+    }
+  };
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -110,13 +117,10 @@ export default function StudentDashboard() {
   // Workout for the selected day
   const showWorkout = !!workout;
 
-  const openYouTube = useCallback(async (videoId: string) => {
-    const url = `https://www.youtube.com/watch?v=${videoId}`;
-    const supported = await Linking.canOpenURL(url);
-    if (supported) {
-      await Linking.openURL(url);
-    } else {
-      Alert.alert('Erro', 'Não foi possível abrir o vídeo do YouTube.');
+  const [playing, setPlaying] = useState(false);
+  const onStateChange = useCallback((state: string) => {
+    if (state === "ended") {
+      setPlaying(false);
     }
   }, []);
 
@@ -296,13 +300,19 @@ export default function StudentDashboard() {
                     </Text>
                   )}
                   {workout.youtubeVideoId && (
-                    <TouchableOpacity
-                      onPress={() => openYouTube(workout.youtubeVideoId as string)}
-                      className={`flex-row items-center justify-center gap-2 bg-[#ff0000]/10 border border-[#ff0000]/30 py-3 rounded-xl ${workout.description ? 'mt-4' : ''}`}
-                    >
-                      <Ionicons name="logo-youtube" size={18} color="#ff0000" />
-                      <Text className="text-[#ff0000] font-bold text-sm">Assistir Vídeo do Treino</Text>
-                    </TouchableOpacity>
+                    <View className={`rounded-xl overflow-hidden ${workout.description ? 'mt-4' : ''}`}>
+                      <YoutubePlayer
+                        height={200}
+                        play={playing}
+                        videoId={workout.youtubeVideoId as string}
+                        onChangeState={onStateChange}
+                        initialPlayerParams={{
+                          preventFullScreen: true,
+                          modestbranding: 1,
+                          rel: 0
+                        }}
+                      />
+                    </View>
                   )}
                 </View>
               )}
@@ -382,6 +392,60 @@ export default function StudentDashboard() {
 
       {/* Home indicator */}
       <View style={{ position: 'absolute', bottom: 4, alignSelf: 'center', width: 128, height: 4, backgroundColor: '#3f3f46', borderRadius: 999 }} />
+
+      {/* Observation Modal */}
+      <Modal
+        visible={completeModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setCompleteModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}
+          activeOpacity={1}
+          onPress={() => setCompleteModalVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{ width: '85%', backgroundColor: '#18181b', borderRadius: 32, padding: 24 }}
+          >
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-xl font-bold text-white">Concluir Treino</Text>
+              <TouchableOpacity onPress={() => setCompleteModalVisible(false)} className="bg-zinc-800 rounded-full p-2">
+                <Ionicons name="close" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
+
+            <Text className="text-zinc-400 mb-4">
+              Como foi o treino? Deixe uma observação para o seu coach (opcional).
+            </Text>
+
+            <TextInput
+              className="bg-zinc-900 border border-zinc-800 text-white px-4 py-4 rounded-2xl mb-6 text-base"
+              placeholder="Ex: Senti dor no joelho..."
+              placeholderTextColor="#52525b"
+              multiline={true}
+              numberOfLines={4}
+              value={observation}
+              onChangeText={setObservation}
+              style={{ minHeight: 120, textAlignVertical: 'top' }}
+            />
+
+            <TouchableOpacity
+              onPress={confirmComplete}
+              disabled={completeWorkout.isPending}
+              className="w-full bg-primary py-4 rounded-2xl items-center"
+              style={{ shadowColor: '#b30f15', shadowOpacity: 0.35, shadowRadius: 12, elevation: 8 }}
+            >
+              {completeWorkout.isPending ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-white font-bold text-base">Enviar</Text>
+              )}
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }

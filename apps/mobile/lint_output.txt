@@ -1,0 +1,36 @@
+
+> @dryfit/mobile@1.0.0 lint
+> expo lint
+
+
+D:\Workspace\dryfit\apps\mobile\app\(coach)\_layout.tsx
+  1:22  warning  'D:\Workspace\dryfit\node_modules\expo-router\build\index.js' imported multiple times  import/no-duplicates
+  4:27  warning  'D:\Workspace\dryfit\node_modules\expo-router\build\index.js' imported multiple times  import/no-duplicates
+  6:79  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead                            @typescript-eslint/array-type
+
+D:\Workspace\dryfit\apps\mobile\app\(coach)\dashboard.tsx
+   30:10  warning  'formatDate' is defined but never used                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   94:9   warning  The 'students' logical expression could make the dependencies of useMemo Hook (at line 98) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'students' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  462:17  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                                                                                                                                         react/no-unescaped-entities
+  462:63  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                                                                                                                                         react/no-unescaped-entities
+
+D:\Workspace\dryfit\apps\mobile\app\(coach)\students.tsx
+  1:22  warning  'TouchableOpacity' is defined but never used  @typescript-eslint/no-unused-vars
+  1:40  warning  'Alert' is defined but never used             @typescript-eslint/no-unused-vars
+  3:10  warning  'useAuthStore' is defined but never used      @typescript-eslint/no-unused-vars
+
+D:\Workspace\dryfit\apps\mobile\app\(student)\_layout.tsx
+  13:81  warning  Array type using 'Array<T>' is forbidden. Use 'T[]' instead  @typescript-eslint/array-type
+
+D:\Workspace\dryfit\apps\mobile\app\_layout.tsx
+  27:6  warning  React Hook useEffect has a missing dependency: 'loadStoredAuth'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  49:6  warning  React Hook useEffect has a missing dependency: 'router'. Either include it or remove the dependency array          react-hooks/exhaustive-deps
+
+D:\Workspace\dryfit\apps\mobile\components\AnimatedSplashScreen.tsx
+   2:10  warning  'View' is defined but never used                                                                                                                 @typescript-eslint/no-unused-vars
+  45:8   warning  React Hook useEffect has missing dependencies: 'scale', 'textOpacity', and 'textTranslateY'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  60:8   warning  React Hook useEffect has missing dependencies: 'onFinish', 'opacity', and 'scale'. Either include them or remove the dependency array            react-hooks/exhaustive-deps
+
+✖ 16 problems (2 errors, 14 warnings)
+  0 errors and 3 warnings potentially fixable with the `--fix` option.
+
