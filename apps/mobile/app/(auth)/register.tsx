@@ -37,12 +37,17 @@ export default function RegisterScreen() {
     }
     setIsLoading(true);
     try {
-      await register({
+      const userResult = await register({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         password,
         inviteCode: inviteCode.toUpperCase(),
       });
+      if (userResult?.role === 'COACH') {
+        router.replace('/(coach)/dashboard');
+      } else {
+        router.replace('/(student)/dashboard');
+      }
     } catch (error: unknown) {
       const message =
         (error as { response?: { data?: { error?: string } } })?.response?.data?.error ??

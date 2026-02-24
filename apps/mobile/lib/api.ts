@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.0.11:3333';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.0.15:3333';
 
 async function getToken(): Promise<string | null> {
   return SecureStore.getItemAsync('dryfit_token');
@@ -10,6 +10,9 @@ async function buildHeaders(extra?: Record<string, string>): Promise<Record<stri
   const token = await getToken();
   return {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...extra,
   };

@@ -53,7 +53,7 @@ export const StudentCard = ({ student, onPress, showOnlyActiveStatus = false }: 
     let IconOverlay = null;
 
     if (hasFeedback) {
-        statusText = 'treino concluído';
+        statusText = 'Treino concluído';
         statusColor = 'text-green-500';
         IconOverlay = (
             <View className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-500 rounded-full border-2 border-[#18181b] items-center justify-center z-10">
@@ -61,7 +61,7 @@ export const StudentCard = ({ student, onPress, showOnlyActiveStatus = false }: 
             </View>
         );
     } else if (isConcluido) {
-        statusText = 'treino concluído';
+        statusText = 'Treino concluído';
         statusColor = 'text-green-500';
         IconOverlay = (
             <View className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-[#18181b] items-center justify-center z-10">
@@ -69,7 +69,7 @@ export const StudentCard = ({ student, onPress, showOnlyActiveStatus = false }: 
             </View>
         );
     } else if (isEnviado) {
-        statusText = 'treino enviado';
+        statusText = 'Treino enviado';
         statusColor = 'text-zinc-500';
         IconOverlay = (
             <View className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-[#18181b] items-center justify-center z-10">
