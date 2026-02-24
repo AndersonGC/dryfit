@@ -26,7 +26,8 @@ export function useActiveWorkout(date?: string) {
       );
       return response;
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
+    refetchInterval: 1000 * 15, // Auto-update background every 15s
     retry: 2,
   });
 }
@@ -68,7 +69,8 @@ export function useStudentsByDate(date: string) {
       );
       return response;
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
+    refetchInterval: 1000 * 15, // Auto-update background every 15s
   });
 }
 

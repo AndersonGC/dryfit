@@ -16,7 +16,7 @@ interface AuthState {
     password: string;
     name: string;
     inviteCode: string;
-  }) => Promise<void>;
+  }) => Promise<User>;
   logout: () => Promise<void>;
   loadStoredAuth: () => Promise<void>;
 }
@@ -45,6 +45,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     await storage.setToken(token);
     await storage.setUser(user);
     set({ user, token, isAuthenticated: true });
+    return user;
   },
 
   logout: async () => {

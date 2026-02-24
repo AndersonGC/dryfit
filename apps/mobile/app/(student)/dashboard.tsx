@@ -11,6 +11,7 @@ import {
   FlatList,
   useWindowDimensions,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import YoutubePlayer from 'react-native-youtube-iframe';
@@ -67,10 +68,22 @@ export default function StudentDashboard() {
 
   const [completeModalVisible, setCompleteModalVisible] = useState(false);
   const [observation, setObservation] = useState('');
+  const [forceDetails, setForceDetails] = useState(false);
+
+  // Reset view mode when date changes
+  useEffect(() => {
+    setForceDetails(false);
+  }, [selectedDate]);
 
   const formattedDate = toLocalDateString(selectedDate);
-  const { data: workoutRes, isLoading } = useActiveWorkout(formattedDate);
+  const { data: workoutRes, isLoading, refetch: refetchWorkout } = useActiveWorkout(formattedDate);
   const completeWorkout = useCompleteWorkout(formattedDate);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchWorkout();
+    }, [refetchWorkout])
+  );
 
   // The calendar shows exactly 7 days without gap for the container calculation,
   // we handle the spacing using a wrapper.
@@ -123,6 +136,74 @@ export default function StudentDashboard() {
       setPlaying(false);
     }
   }, []);
+
+  const renderDescription = () => {
+    let descriptionText = workout?.description || '';
+    const videoIdField = workout?.youtubeVideoId || '';
+
+    if (videoIdField) {
+      const isUrl = /(?:youtu\.be\/|youtube\.com\/)/.test(videoIdField);
+      const isDirectId = videoIdField.length === 11 && !isUrl;
+
+      if (isDirectId) {
+        if (!descriptionText.includes(videoIdField)) {
+          descriptionText += `\nhttps://youtu.be/${videoIdField}`;
+        }
+      } else {
+        if (!descriptionText.includes(videoIdField)) {
+          descriptionText += `\n${videoIdField}`;
+        }
+      }
+    }
+
+    if (!descriptionText.trim()) return null;
+
+    const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})\S*/g;
+
+    const parts: Array<{ type: 'text'; content: string } | { type: 'video'; videoId: string }> = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(descriptionText)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ type: 'text', content: descriptionText.substring(lastIndex, match.index) });
+      }
+      parts.push({ type: 'video', videoId: match[1] });
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < descriptionText.length) {
+      parts.push({ type: 'text', content: descriptionText.substring(lastIndex) });
+    }
+
+    return parts.map((part, index) => {
+      if (part.type === 'text') {
+        const text = part.content.trim();
+        if (!text) return null;
+        return (
+          <Text key={`text-${index}`} className="text-zinc-300 text-base leading-relaxed mb-4 mt-2">
+            {text}
+          </Text>
+        );
+      } else if (part.type === 'video') {
+        return (
+          <View key={`video-${index}`} className="rounded-2xl overflow-hidden mt-2 mb-6 bg-black border border-zinc-800">
+            <YoutubePlayer
+              height={200}
+              play={playing}
+              videoId={part.videoId}
+              onChangeState={onStateChange}
+              initialPlayerParams={{
+                preventFullScreen: true,
+                modestbranding: 1,
+                rel: 0
+              }}
+            />
+          </View>
+        );
+      }
+    });
+  };
 
   return (
     <View className="flex-1 bg-[#0f1115]">
@@ -259,67 +340,58 @@ export default function StudentDashboard() {
                 Seu coach ainda não enviou treino para hoje. Descanse bem!
               </Text>
             </View>
-          ) : (
-            <>
-              {/* WOD Hero */}
-              <View className="w-full h-44 rounded-3xl overflow-hidden mb-6 bg-zinc-900">
-                <View className="absolute inset-0 bg-[#0a0a0a]/60 z-10" />
-                <View className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80" />
-                <View className="absolute bottom-5 left-5 z-20">
-                  <View className="bg-primary px-2 py-1 rounded mb-2 self-start">
-                    <Text className="text-[10px] font-bold text-white uppercase tracking-wider">
-                      {WORKOUT_LABELS[workout.type] || workout.type}
-                    </Text>
-                  </View>
-                  <Text className="text-2xl font-bold text-white">{workout.title}</Text>
-                  <Text className="text-zinc-300 text-sm mt-1">Enviado pelo seu Coach</Text>
-                </View>
-                <View className="absolute top-4 right-4 z-20 bg-white/10 rounded-full px-3 py-1 flex-row items-center gap-1">
-                  <Ionicons name="flame" size={14} color="white" />
-                  <Text className="text-white text-xs font-medium">480 kcal</Text>
-                </View>
-                <View className="flex-1 bg-zinc-900 items-center justify-center">
-                  <Ionicons name="barbell" size={80} color="#1c1f26" />
+          ) : workout.status === 'COMPLETED' && !forceDetails ? (
+            <View className="flex-1 items-center justify-center py-[20%]">
+              <View className="w-28 h-28 rounded-full border-4 border-[#3a1316] items-center justify-center mb-10 relative bg-[#611014]/20">
+                <View className="absolute -left-4 w-6 h-12 border-l-2 border-t-2 border-b-2 border-[#b30f15] rounded-l-full opacity-60" />
+                <View className="absolute -right-4 w-6 h-12 border-r-2 border-t-2 border-b-2 border-[#b30f15] rounded-r-full opacity-60" />
+                <View className="absolute -bottom-6 w-16 h-4 border-b-2 border-l-2 border-r-2 border-[#b30f15] rounded-b-full opacity-60" />
+
+                <View className="w-20 h-20 bg-[#b30f15] rounded-full items-center justify-center shadow-lg shadow-black">
+                  <Ionicons name="checkmark" size={54} color="white" />
                 </View>
               </View>
 
-              {/* Exercícios */}
-              {workout.status === 'COMPLETED' && (
-                <View className="bg-green-500/10 border border-green-500/30 rounded-2xl p-3 mb-4 flex-row items-center gap-2">
-                  <Ionicons name="checkmark-circle" size={20} color="#22c55e" />
-                  <Text className="text-green-400 font-bold">Treino concluído hoje! 🎉</Text>
-                </View>
-              )}
+              <Text className="font-black text-[28px] text-white tracking-widest uppercase mb-2">TREINO CONCLUÍDO!</Text>
+              <Text className="text-zinc-400 text-base mb-16">Você superou seus limites hoje.</Text>
 
-              {/* Informações Extras do Treino (Descrição e YouTube) */}
-              {(workout.description || workout.youtubeVideoId) && (
-                <View className="bg-[#1c1f26] border border-zinc-800 rounded-2xl p-4 mb-6">
-                  {workout.description && (
-                    <Text className="text-zinc-300 text-sm leading-relaxed">
-                      {workout.description}
+              <TouchableOpacity
+                onPress={() => setForceDetails(true)}
+                className="py-3 px-6 rounded-2xl border border-zinc-800 bg-[#1c1f26]"
+              >
+                <Text className="text-zinc-300 font-bold">Ver detalhes do treino</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              {/* WOD Hero */}
+              <View className="w-full min-h-[176px] rounded-3xl overflow-hidden mb-6 bg-zinc-900/40">
+                {/* Backdrops */}
+                <View className="absolute inset-0 items-center justify-center opacity-40">
+                  <Ionicons name="barbell" size={140} color="#1c1f26" />
+                </View>
+                <View className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80 z-0" />
+
+                {/* Content */}
+                <View className="relative z-10 p-6 flex-1 justify-center">
+                  <View className="bg-primary px-3 py-1.5 rounded-lg mb-3 self-start">
+                    <Text className="text-[11px] font-bold text-white uppercase tracking-wider">
+                      {WORKOUT_LABELS[workout.type] || workout.type}
                     </Text>
-                  )}
-                  {workout.youtubeVideoId && (
-                    <View className={`rounded-xl overflow-hidden ${workout.description ? 'mt-4' : ''}`}>
-                      <YoutubePlayer
-                        height={200}
-                        play={playing}
-                        videoId={workout.youtubeVideoId as string}
-                        onChangeState={onStateChange}
-                        initialPlayerParams={{
-                          preventFullScreen: true,
-                          modestbranding: 1,
-                          rel: 0
-                        }}
-                      />
-                    </View>
-                  )}
+                  </View>
+                  <Text className="text-3xl font-extrabold text-white mb-2 tracking-tight">{workout.title}</Text>
+
+                  {renderDescription()}
+                </View>
+              </View>
+
+              {/* Status de Conclusão */}
+              {workout.status === 'COMPLETED' && (
+                <View className="bg-green-500/10 border border-green-500/30 rounded-2xl p-4 mb-6 flex-row items-center gap-3">
+                  <Ionicons name="checkmark-circle" size={24} color="#22c55e" />
+                  <Text className="text-green-400 font-bold text-base">Treino concluído hoje!</Text>
                 </View>
               )}
-
-              <Text className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3">
-                Exercícios ({((workout as any).exercises as any[])?.length ?? 0})
-              </Text>
 
               <View className="gap-3">
                 {((workout as any).exercises || []).map((ex: any, i: number) => (
@@ -356,39 +428,38 @@ export default function StudentDashboard() {
                   </View>
                 ))}
               </View>
+
+              {/* START WORKOUT ACTION */}
+              {showWorkout && workout.status !== 'COMPLETED' && (
+                <View className="mt-8 items-center w-full">
+                  <TouchableOpacity
+                    onPress={handleComplete}
+                    disabled={completeWorkout.isPending}
+                    className="flex-row items-center justify-center gap-2 bg-primary px-10 py-4 rounded-full w-full"
+                    style={{
+                      shadowColor: '#b30f15',
+                      shadowOpacity: 0.4,
+                      shadowRadius: 16,
+                      shadowOffset: { width: 0, height: 6 },
+                      elevation: 12,
+                    }}
+                    activeOpacity={0.9}
+                  >
+                    {completeWorkout.isPending ? (
+                      <ActivityIndicator color="white" size="small" />
+                    ) : (
+                      <>
+                        <Ionicons name="play" size={20} color="white" />
+                        <Text className="text-white font-bold text-base tracking-wide">CONCLUIR TREINO</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
             </>
           )}
         </View>
       </ScrollView>
-
-      {/* Floating Action — START WORKOUT */}
-      {showWorkout && workout.status !== 'COMPLETED' && (
-        <View className="absolute bottom-28 left-0 right-0 items-center pointer-events-none" style={{ pointerEvents: 'box-none' }}>
-          <TouchableOpacity
-            onPress={handleComplete}
-            disabled={completeWorkout.isPending}
-            className="flex-row items-center gap-2 bg-primary px-10 py-4 rounded-full"
-            style={{
-              shadowColor: '#b30f15',
-              shadowOpacity: 0.4,
-              shadowRadius: 16,
-              shadowOffset: { width: 0, height: 6 },
-              elevation: 12,
-              pointerEvents: 'auto',
-            }}
-            activeOpacity={0.9}
-          >
-            {completeWorkout.isPending ? (
-              <ActivityIndicator color="white" size="small" />
-            ) : (
-              <>
-                <Ionicons name="play" size={20} color="white" />
-                <Text className="text-white font-bold text-base tracking-wide">CONCLUIR TREINO</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-      )}
 
       {/* Home indicator */}
       <View style={{ position: 'absolute', bottom: 4, alignSelf: 'center', width: 128, height: 4, backgroundColor: '#3f3f46', borderRadius: 999 }} />
@@ -422,8 +493,6 @@ export default function StudentDashboard() {
 
             <TextInput
               className="bg-zinc-900 border border-zinc-800 text-white px-4 py-4 rounded-2xl mb-6 text-base"
-              placeholder="Ex: Senti dor no joelho..."
-              placeholderTextColor="#52525b"
               multiline={true}
               numberOfLines={4}
               value={observation}

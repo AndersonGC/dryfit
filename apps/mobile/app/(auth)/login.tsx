@@ -31,8 +31,8 @@ export default function LoginScreen() {
     }
     setIsLoading(true);
     try {
-      const user = await login(email.trim().toLowerCase(), password);
-      if (user?.role === 'COACH') {
+      const userResult = await login(email.trim().toLowerCase(), password);
+      if (userResult?.role === 'COACH') {
         router.replace('/(coach)/dashboard');
       } else {
         router.replace('/(student)/dashboard');

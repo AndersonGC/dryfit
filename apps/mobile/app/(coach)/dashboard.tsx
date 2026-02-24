@@ -12,6 +12,7 @@ import {
   Platform,
   useWindowDimensions,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
@@ -72,7 +73,6 @@ export default function CoachDashboard() {
   const [workoutTitle, setWorkoutTitle] = useState('');
   const [workoutType, setWorkoutType] = useState<WorkoutType>('STRENGTH');
   const [workoutDescription, setWorkoutDescription] = useState('');
-  const [youtubeVideoId, setYoutubeVideoId] = useState('');
 
   // Dashboard date controller
   const [dashboardDate, setDashboardDate] = useState<Date>(new Date());
@@ -85,8 +85,14 @@ export default function CoachDashboard() {
   const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
   const [selectedStudentForFeedback, setSelectedStudentForFeedback] = useState<StudentWithWorkout | null>(null);
 
-  const { data: studentsData, isLoading: loadingStudents } = useStudentsByDate(toLocalDateString(dashboardDate));
+  const { data: studentsData, isLoading: loadingStudents, refetch: refetchStudents } = useStudentsByDate(toLocalDateString(dashboardDate));
   const students: StudentWithWorkout[] = (studentsData?.data as any)?.students ?? [];
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchStudents();
+    }, [refetchStudents])
+  );
 
   const filteredStudents = useMemo(
     () => students.filter((s) => s.name.toLowerCase().includes(search.toLowerCase())),
@@ -97,7 +103,6 @@ export default function CoachDashboard() {
     setSelectedStudent(student);
     setWorkoutTitle('');
     setWorkoutDescription('');
-    setYoutubeVideoId('');
     setWorkoutDate(dashboardDate); // Pre-select the date that the coach was looking at
     setModalVisible(true);
   }, [dashboardDate]);
@@ -131,20 +136,11 @@ export default function CoachDashboard() {
       return;
     }
 
-    // Optional: Extract just the ID if the user pastes a full URL
-    let parsedVideoId = youtubeVideoId.trim();
-    if (parsedVideoId.includes('v=')) {
-      parsedVideoId = parsedVideoId.split('v=')[1]?.split('&')[0] || parsedVideoId;
-    } else if (parsedVideoId.includes('youtu.be/')) {
-      parsedVideoId = parsedVideoId.split('youtu.be/')[1]?.split('?')[0] || parsedVideoId;
-    }
-
     try {
       await createWorkout.mutateAsync({
         studentId: selectedStudent.id,
         title: workoutTitle.trim(),
         description: workoutDescription.trim(),
-        youtubeVideoId: parsedVideoId || undefined,
         type: workoutType,
         scheduledAt: `${toLocalDateString(workoutDate)}T12:00:00.000Z`,
       });
@@ -380,11 +376,11 @@ export default function CoachDashboard() {
               </View>
             </ScrollView>
 
-            {/* Nova Funcionalidade de Card: Descrição e YouTube Link */}
+            {/* Descrição */}
             <View className="mb-6 bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg p-2">
               <TextInput
                 className="text-white text-base px-3 pt-3 pb-8 text-left"
-                placeholder="Descreva o treino livremente aqui... (Pressione OK no teclado para sair)"
+                placeholder="Descreva o treino livremente aqui..."
                 placeholderTextColor="#52525b"
                 multiline={true}
                 value={workoutDescription}
@@ -392,21 +388,6 @@ export default function CoachDashboard() {
                 style={{ minHeight: 120, textAlignVertical: 'top' }}
                 blurOnSubmit={false}
               />
-
-              <View className="mt-2 border-t border-zinc-800 pt-3 px-1 mb-1">
-                <View className="flex-row items-center gap-2 bg-[#1c1f26] px-3 py-3 rounded-xl border border-zinc-800">
-                  <Ionicons name="logo-youtube" size={20} color="#ff0000" />
-                  <TextInput
-                    className="flex-1 text-white text-sm"
-                    placeholder="Link ou ID do vídeo no YouTube (opcional)"
-                    placeholderTextColor="#52525b"
-                    value={youtubeVideoId}
-                    onChangeText={setYoutubeVideoId}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
-              </View>
             </View>
 
             <TouchableOpacity
