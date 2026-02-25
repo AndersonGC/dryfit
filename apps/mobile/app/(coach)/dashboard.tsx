@@ -7,17 +7,17 @@ import {
   FlatList,
   Modal,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Platform,
   useWindowDimensions,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
 import { useStudentsByDate, useCreateWorkout, toLocalDateString } from '../../hooks/useWorkouts';
+import { useAlert } from '../../hooks/useCustomAlert';
 import { StudentCard, type StudentWithWorkout } from '../../components/StudentCard';
+import { CustomDatePickerModal } from '../../components/CustomDatePickerModal';
 import type { User, WorkoutType } from '@dryfit/types';
 
 const WORKOUT_TYPES: WorkoutType[] = ['STRENGTH', 'WOD', 'HIIT', 'CUSTOM'];
@@ -65,6 +65,7 @@ function isSameDay(a: Date, b: Date) {
 export default function CoachDashboard() {
   const { user } = useAuthStore();
   const { width } = useWindowDimensions();
+  const { showAlert } = useAlert();
   const createWorkout = useCreateWorkout();
 
   const [search, setSearch] = useState('');
@@ -79,7 +80,7 @@ export default function CoachDashboard() {
 
   // Modal date controller (prefilled with dashboard date when opening)
   const [workoutDate, setWorkoutDate] = useState<Date>(new Date());
-  const [showIOSPicker, setShowIOSPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Modal for Feedback
   const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
@@ -116,23 +117,9 @@ export default function CoachDashboard() {
     }
   }, [openBuilder]);
 
-  const openDatePicker = () => {
-    if (Platform.OS === 'android') {
-      DateTimePickerAndroid.open({
-        value: workoutDate,
-        mode: 'date',
-        onChange: (_event, date) => {
-          if (date) setWorkoutDate(date);
-        },
-      });
-    } else {
-      setShowIOSPicker(true);
-    }
-  };
-
   const handleCreate = async () => {
     if (!selectedStudent || !workoutTitle.trim()) {
-      Alert.alert('Atenção', 'Título e aluno são obrigatórios.');
+      showAlert('Atenção', 'Título e aluno são obrigatórios.');
       return;
     }
 
@@ -145,9 +132,9 @@ export default function CoachDashboard() {
         scheduledAt: `${toLocalDateString(workoutDate)}T12:00:00.000Z`,
       });
       setModalVisible(false);
-      Alert.alert('✅ Treino criado!', `Treino enviado para ${selectedStudent.name}.`);
+      showAlert('✅ Treino criado!', `Treino enviado para ${selectedStudent.name}.`);
     } catch {
-      Alert.alert('Erro', 'Não foi possível criar o treino.');
+      showAlert('Erro', 'Não foi possível criar o treino.');
     }
   };
 
@@ -302,7 +289,7 @@ export default function CoachDashboard() {
       />
 
       {/* Workout Builder Modal */}
-      <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setModalVisible(false)}>
+      <Modal visible={modalVisible} animationType="slide" onRequestClose={() => setModalVisible(false)}>
         <View className="flex-1 bg-[#0f1115]">
           {/* Modal Header */}
           <View className="flex-row items-center justify-between px-5 pt-6 pb-4 border-b border-zinc-800">
@@ -327,7 +314,7 @@ export default function CoachDashboard() {
 
             {/* Data do Treino */}
             <TouchableOpacity
-              onPress={openDatePicker}
+              onPress={() => setShowDatePicker(true)}
               className="bg-zinc-900 border border-zinc-800 px-4 py-4 rounded-2xl mb-4 flex-row items-center gap-3"
             >
               <Ionicons name="calendar-outline" size={20} color="#71717a" />
@@ -337,27 +324,12 @@ export default function CoachDashboard() {
               <Ionicons name="chevron-down" size={16} color="#71717a" />
             </TouchableOpacity>
 
-            {/* iOS Date Picker inline */}
-            {Platform.OS === 'ios' && showIOSPicker && (
-              <View className="mb-4 bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-                <DateTimePicker
-                  value={workoutDate}
-                  mode="date"
-                  display="spinner"
-                  onChange={(_event, date) => {
-                    if (date) setWorkoutDate(date);
-                  }}
-                  style={{ height: 180 }}
-                  themeVariant="dark"
-                />
-                <TouchableOpacity
-                  onPress={() => setShowIOSPicker(false)}
-                  className="items-center py-3 border-t border-zinc-800"
-                >
-                  <Text className="text-primary font-bold">Confirmar</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            <CustomDatePickerModal
+              visible={showDatePicker}
+              onClose={() => setShowDatePicker(false)}
+              date={workoutDate}
+              onSelectDate={setWorkoutDate}
+            />
 
             {/* Tipo */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5">
@@ -414,13 +386,13 @@ export default function CoachDashboard() {
         onRequestClose={() => setFeedbackModalVisible(false)}
       >
         <TouchableOpacity
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}
+          className="flex-1 justify-center items-center bg-black/60 px-6"
           activeOpacity={1}
           onPress={() => setFeedbackModalVisible(false)}
         >
           <TouchableOpacity
             activeOpacity={1}
-            style={{ width: '85%', backgroundColor: '#18181b', borderRadius: 32, padding: 24 }}
+            style={{ width: '100%', maxWidth: 384, backgroundColor: '#1c1f26', borderRadius: 24, padding: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}
           >
             <View className="flex-row items-center gap-3 mb-6">
               <View className="w-12 h-12 bg-red-900/30 rounded-2xl items-center justify-center">

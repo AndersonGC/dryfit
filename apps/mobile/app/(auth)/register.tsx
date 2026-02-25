@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,10 +12,12 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
+import { useAlert } from '../../hooks/useCustomAlert';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { register } = useAuthStore();
+  const { showAlert } = useAlert();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -28,11 +29,11 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword || !inviteCode) {
-      Alert.alert('Atenção', 'Preencha todos os campos.');
+      showAlert('Atenção', 'Preencha todos os campos.');
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Atenção', 'As senhas não coincidem.');
+      showAlert('Atenção', 'As senhas não coincidem.');
       return;
     }
     setIsLoading(true);
@@ -52,7 +53,7 @@ export default function RegisterScreen() {
       const message =
         (error as { response?: { data?: { error?: string } } })?.response?.data?.error ??
         'Código de convite inválido ou e-mail já cadastrado.';
-      Alert.alert('Erro no Cadastro', message);
+      showAlert('Erro no Cadastro', message);
     } finally {
       setIsLoading(false);
     }
