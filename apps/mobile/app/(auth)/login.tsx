@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -14,10 +13,12 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
+import { useAlert } from '../../hooks/useCustomAlert';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuthStore();
+  const { showAlert } = useAlert();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,7 +27,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Atenção', 'Preencha e-mail e senha.');
+      showAlert('Atenção', 'Preencha e-mail e senha.');
       return;
     }
     setIsLoading(true);
@@ -41,7 +42,7 @@ export default function LoginScreen() {
       const message =
         (error as { response?: { data?: { error?: string } } })?.response?.data?.error ??
         'E-mail ou senha incorretos.';
-      Alert.alert('Erro no Login', message);
+      showAlert('Erro no Login', message);
     } finally {
       setIsLoading(false);
     }

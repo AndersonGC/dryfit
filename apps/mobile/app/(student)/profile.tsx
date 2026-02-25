@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
+import { useAlert } from '../../hooks/useCustomAlert';
 
 const getAvatarKey = (userId: string) => `student_avatar_uri_${userId}`;
 
 export default function StudentProfile() {
   const { user, logout } = useAuthStore();
+  const { showAlert } = useAlert();
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
 
   // Load persisted avatar on mount
@@ -25,7 +27,7 @@ export default function StudentProfile() {
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permissão negada', 'Precisamos de acesso à sua galeria para alterar a foto.');
+      showAlert('Permissão negada', 'Precisamos de acesso à sua galeria para alterar a foto.');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -93,7 +95,7 @@ export default function StudentProfile() {
         {/* Logout */}
         <TouchableOpacity
           onPress={() =>
-            Alert.alert('Sair', 'Deseja sair da sua conta?', [
+            showAlert('Sair', 'Deseja sair da sua conta?', [
               { text: 'Cancelar', style: 'cancel' },
               { text: 'Sair', style: 'destructive', onPress: logout },
             ])

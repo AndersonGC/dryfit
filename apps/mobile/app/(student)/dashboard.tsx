@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Alert,
   Modal,
   TextInput,
   ActivityIndicator,
@@ -17,6 +16,7 @@ import * as Haptics from 'expo-haptics';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { useAuthStore } from '../../store/auth.store';
 import { useActiveWorkout, useCompleteWorkout, toLocalDateString } from '../../hooks/useWorkouts';
+import { useAlert } from '../../hooks/useCustomAlert';
 import type { WorkoutType } from '@dryfit/types';
 
 const WORKOUT_LABELS: Record<WorkoutType, string> = {
@@ -62,6 +62,7 @@ function isSameDay(a: Date, b: Date) {
 export default function StudentDashboard() {
   const { user } = useAuthStore();
   const { width } = useWindowDimensions();
+  const { showAlert } = useAlert();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const calendarRef = useRef<FlatList>(null);
@@ -116,7 +117,7 @@ export default function StudentDashboard() {
       });
       setCompleteModalVisible(false);
     } catch {
-      Alert.alert('Erro', 'Não foi possível marcar o treino como concluído.');
+      showAlert('Erro', 'Não foi possível marcar o treino como concluído.');
     }
   };
 
@@ -471,14 +472,10 @@ export default function StudentDashboard() {
         animationType="fade"
         onRequestClose={() => setCompleteModalVisible(false)}
       >
-        <TouchableOpacity
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}
-          activeOpacity={1}
-          onPress={() => setCompleteModalVisible(false)}
-        >
+        <View className="flex-1 justify-center items-center bg-black/60 px-6">
           <TouchableOpacity
+            style={{ width: '100%', maxWidth: 384, backgroundColor: '#1c1f26', borderRadius: 24, padding: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}
             activeOpacity={1}
-            style={{ width: '85%', backgroundColor: '#18181b', borderRadius: 32, padding: 24 }}
           >
             <View className="flex-row items-center justify-between mb-4">
               <Text className="text-xl font-bold text-white">Concluir Treino</Text>
@@ -513,7 +510,7 @@ export default function StudentDashboard() {
               )}
             </TouchableOpacity>
           </TouchableOpacity>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </View>
   );

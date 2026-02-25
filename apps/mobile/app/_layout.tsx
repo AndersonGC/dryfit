@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuthStore } from '../store/auth.store';
 import AnimatedSplashScreen from '../components/AnimatedSplashScreen';
+import { AlertProvider } from '../hooks/useCustomAlert';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,18 +57,20 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView className="flex-1">
-        <StatusBar style="light" />
-        <AuthGate />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(coach)" />
-          <Stack.Screen name="(student)" />
-        </Stack>
-        {!splashComplete && (
-          <AnimatedSplashScreen onFinish={() => setSplashComplete(true)} />
-        )}
-      </GestureHandlerRootView>
+      <AlertProvider>
+        <GestureHandlerRootView className="flex-1">
+          <StatusBar style="light" />
+          <AuthGate />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(coach)" />
+            <Stack.Screen name="(student)" />
+          </Stack>
+          {!splashComplete && (
+            <AnimatedSplashScreen onFinish={() => setSplashComplete(true)} />
+          )}
+        </GestureHandlerRootView>
+      </AlertProvider>
     </QueryClientProvider>
   );
 }

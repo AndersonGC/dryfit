@@ -1,12 +1,14 @@
-import { View, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
 import { useInviteCode, useGenerateInviteCode } from '../../hooks/useWorkouts';
+import { useAlert } from '../../hooks/useCustomAlert';
 
 export default function CoachSettings() {
   const { user, logout } = useAuthStore();
+  const { showAlert } = useAlert();
   const { data: inviteRes } = useInviteCode();
   const generateInvite = useGenerateInviteCode();
   const inviteCode = inviteRes?.data?.inviteCode ?? '------';
@@ -14,11 +16,11 @@ export default function CoachSettings() {
   const copyCode = async () => {
     await Clipboard.setStringAsync(inviteCode);
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert('Copiado!', 'Código de convite copiado. Envie para seus alunos!');
+    showAlert('Copiado!', 'Código de convite copiado. Envie para seus alunos!');
   };
 
   const handleGenerateCode = () => {
-    Alert.alert(
+    showAlert(
       'Novo Código',
       'Deseja gerar um novo código de convite? O código anterior deixará de funcionar se ainda não tiver sido usado.',
       [
@@ -93,7 +95,7 @@ export default function CoachSettings() {
         {/* Logout */}
         <TouchableOpacity
           onPress={() =>
-            Alert.alert('Sair', 'Deseja sair da sua conta?', [
+            showAlert('Sair', 'Deseja sair da sua conta?', [
               { text: 'Cancelar', style: 'cancel' },
               { text: 'Sair', style: 'destructive', onPress: logout },
             ])

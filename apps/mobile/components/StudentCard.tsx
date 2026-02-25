@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, FontAwesome6 } from '@expo/vector-icons';
 import type { User } from '@dryfit/types';
 
 export interface StudentWithWorkout extends User {
@@ -56,24 +56,24 @@ export const StudentCard = ({ student, onPress, showOnlyActiveStatus = false }: 
         statusText = 'Treino concluído';
         statusColor = 'text-green-500';
         IconOverlay = (
-            <View className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-500 rounded-full border-2 border-[#18181b] items-center justify-center z-10">
-                <Ionicons name="warning" size={12} color="#18181b" />
+            <View className="absolute -top-2 -right-2 w-7 h-7 bg-[#ffd54f] rounded-full border-[3px] border-[#0c0c0c] items-center justify-center z-10 shadow-sm shadow-black/50">
+                <FontAwesome6 name="exclamation" size={12} color="#0c0c0c" />
             </View>
         );
     } else if (isConcluido) {
         statusText = 'Treino concluído';
         statusColor = 'text-green-500';
         IconOverlay = (
-            <View className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-[#18181b] items-center justify-center z-10">
-                <Ionicons name="checkmark" size={12} color="white" />
+            <View className="absolute -top-2 -right-2 w-7 h-7 bg-[#4ade80] rounded-full border-[3px] border-[#0c0c0c] items-center justify-center z-10 shadow-sm shadow-black/50">
+                <FontAwesome6 name="check" size={12} color="#0c0c0c" />
             </View>
         );
     } else if (isEnviado) {
         statusText = 'Treino enviado';
         statusColor = 'text-zinc-500';
         IconOverlay = (
-            <View className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-[#18181b] items-center justify-center z-10">
-                <Ionicons name="checkmark" size={12} color="white" />
+            <View className="absolute -top-2 -right-2 w-7 h-7 bg-[#4ade80] rounded-full border-[3px] border-[#0c0c0c] items-center justify-center z-10 shadow-sm shadow-black/50">
+                <FontAwesome6 name="check" size={12} color="#0c0c0c" />
             </View>
         );
     }
@@ -85,7 +85,7 @@ export const StudentCard = ({ student, onPress, showOnlyActiveStatus = false }: 
             className={`p-4 rounded-[28px] flex-row items-center justify-between mb-4 bg-[#0c0c0c] border border-zinc-900`}
         >
             <View className="flex-row items-center gap-4">
-                <View className="w-14 h-14 rounded-2xl bg-white items-center justify-center relative overflow-visible">
+                <View className="w-14 h-14 rounded-2xl bg-white items-center justify-center relative visible">
                     <Ionicons name="person" size={28} color="#71717a" />
                     {IconOverlay}
                 </View>
