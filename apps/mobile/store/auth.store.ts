@@ -16,6 +16,7 @@ interface AuthState {
     password: string;
     name: string;
     inviteCode: string;
+    verificationToken: string;
   }) => Promise<User>;
   logout: () => Promise<void>;
   loadStoredAuth: () => Promise<void>;

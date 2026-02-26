@@ -83,3 +83,11 @@ model InviteCode {
   usedBy    String?
   createdAt DateTime  @default(now())
 }
+
+model EmailVerification {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
