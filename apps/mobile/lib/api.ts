@@ -58,4 +58,17 @@ export const api = {
     const data = await handleResponse<T>(res);
     return { data };
   },
+
+  delete: async <T = void>(path: string): Promise<{ data: T }> => {
+    const headers = await buildHeaders();
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'DELETE',
+      headers,
+    });
+    if (res.status === 401) await SecureStore.deleteItemAsync('dryfit_token');
+    // If 204 No Content, return empty object
+    if (res.status === 204) return { data: {} as T };
+    const data = await handleResponse<T>(res);
+    return { data };
+  },
 };

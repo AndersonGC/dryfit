@@ -174,7 +174,7 @@ export default function LoginScreen() {
               Não tem uma conta?{' '}
               <Text
                 className="text-primary font-bold"
-                onPress={() => router.push('/(auth)/register')}
+                onPress={() => router.push('/(auth)/verify-email')}
               >
                 Criar conta
               </Text>

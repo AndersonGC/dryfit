@@ -9,18 +9,19 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
 import { useAlert } from '../../hooks/useCustomAlert';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ email?: string; token?: string }>();
   const { register } = useAuthStore();
   const { showAlert } = useAlert();
 
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(params.email || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [inviteCode, setInviteCode] = useState('');
@@ -43,6 +44,7 @@ export default function RegisterScreen() {
         email: email.trim().toLowerCase(),
         password,
         inviteCode: inviteCode.toUpperCase(),
+        verificationToken: params.token || '',
       });
       if (userResult?.role === 'COACH') {
         router.replace('/(coach)/dashboard');
@@ -100,14 +102,15 @@ export default function RegisterScreen() {
             <View className="gap-2">
               <Text className="text-xs font-semibold uppercase tracking-wider text-zinc-400 ml-1">E-mail</Text>
               <View className="relative">
-                <Ionicons name="at-outline" size={20} color="#a1a1aa" style={{ position: 'absolute', left: 16, top: 16, zIndex: 1 }} />
+                <Ionicons name="at-outline" size={20} color="#52525b" style={{ position: 'absolute', left: 16, top: 16, zIndex: 1 }} />
                 <TextInput
-                  className="w-full bg-zinc-900/50 border border-zinc-800 text-white pl-12 pr-4 py-4 rounded-2xl"
+                  className="w-full bg-zinc-900/50 border border-zinc-800 text-white pl-12 pr-4 py-4 rounded-2xl opacity-50"
                   placeholder="name@email.com"
                   placeholderTextColor="#52525b"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={email}
+                  editable={false}
                   onChangeText={setEmail}
                   style={{ fontSize: 15 }}
                 />

@@ -139,4 +139,58 @@ export async function workoutsRoutes(fastify: FastifyInstance) {
       }
     },
   });
+
+  // PATCH /workouts/:id — Coach: update workout
+  fastify.patch<{
+    Params: { id: string };
+    Body: {
+      title?: string;
+      description?: string;
+      type?: 'STRENGTH' | 'WOD' | 'HIIT' | 'CUSTOM';
+    };
+  }>('/:id', {
+    preHandler: [requireCoach],
+    schema: {
+      body: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', minLength: 1 },
+          description: { type: 'string' },
+          type: { type: 'string', enum: ['STRENGTH', 'WOD', 'HIIT', 'CUSTOM'] },
+        },
+      },
+    },
+    handler: async (request, reply) => {
+      try {
+        const coach = request.user as JWTPayload;
+        const workout = await workoutsService.updateWorkout(
+          request.params.id,
+          coach.id,
+          request.body
+        );
+        return reply.send(workout);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Erro ao atualizar treino.';
+        return reply.status(400).send({ error: message });
+      }
+    },
+  });
+
+  // DELETE /workouts/:id — Coach: delete workout
+  fastify.delete<{ Params: { id: string } }>('/:id', {
+    preHandler: [requireCoach],
+    handler: async (request, reply) => {
+      try {
+        const coach = request.user as JWTPayload;
+        await workoutsService.deleteWorkout(
+          request.params.id,
+          coach.id
+        );
+        return reply.status(204).send();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Erro ao excluir treino.';
+        return reply.status(400).send({ error: message });
+      }
+    },
+  });
 }

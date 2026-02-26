@@ -10,7 +10,7 @@ const STUDENT_TABS = [
   { name: 'profile', icon: 'person-outline' as const, activeIcon: 'person' as const, label: 'Perfil' },
 ];
 
-function StudentTabBar({ state, navigation }: { state: { index: number; routes: Array<{ name: string }> }; navigation: { emit: (e: { type: string; target: string; canPreventDefault: boolean }) => { defaultPrevented: boolean }; navigate: (n: string) => void } }) {
+function StudentTabBar({ state, navigation }: { state: { index: number; routes: Array<{ name: string }> }; navigation: any }) {
   return (
     <View
       className="absolute bottom-0 left-0 right-0 border-t border-zinc-800/80 pb-8 pt-3 px-8"

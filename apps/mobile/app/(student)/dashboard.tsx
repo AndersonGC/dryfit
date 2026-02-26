@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   FlatList,
   useWindowDimensions,
+  Image,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { useAuthStore } from '../../store/auth.store';
 import { useActiveWorkout, useCompleteWorkout, toLocalDateString } from '../../hooks/useWorkouts';
+import { WeekCalendar } from '../../components/WeekCalendar';
 import { useAlert } from '../../hooks/useCustomAlert';
 import type { WorkoutType } from '@dryfit/types';
 
@@ -26,38 +28,7 @@ const WORKOUT_LABELS: Record<WorkoutType, string> = {
   CUSTOM: 'AMRAP',
 };
 
-const DAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-const TODAY = new Date();
-
-function buildDays() {
-  const currentDay = TODAY.getDay(); // 0 is Sunday
-  // We want Monday (1) to be the first day of the week, so we calculate days from last Monday
-  const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
-
-  // Go back 4 weeks (28 days) exactly to a Monday
-  const daysToSubtract = 28 + daysFromMonday;
-
-  const days = [];
-  // Generate 9 full weeks (63 days)
-  for (let i = 0; i < 63; i++) {
-    const d = new Date(TODAY);
-    d.setDate(TODAY.getDate() - daysToSubtract + i);
-    days.push({
-      date: new Date(d),
-      day: DAY_LABELS[d.getDay()],
-      num: d.getDate(),
-      isToday: d.toDateString() === TODAY.toDateString(),
-    });
-  }
-  return { days, todayIndex: daysToSubtract };
-}
-
-const { days: ALL_DAYS, todayIndex: TODAY_INDEX } = buildDays();
-
-function isSameDay(a: Date, b: Date) {
-  return a.toDateString() === b.toDateString();
-}
 
 export default function StudentDashboard() {
   const { user } = useAuthStore();
@@ -65,7 +36,6 @@ export default function StudentDashboard() {
   const { showAlert } = useAlert();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const calendarRef = useRef<FlatList>(null);
 
   const [completeModalVisible, setCompleteModalVisible] = useState(false);
   const [observation, setObservation] = useState('');
@@ -86,20 +56,7 @@ export default function StudentDashboard() {
     }, [refetchWorkout])
   );
 
-  // The calendar shows exactly 7 days without gap for the container calculation,
-  // we handle the spacing using a wrapper.
-  const dayItemWidth = (width - 40) / 7;
-
-  // Scroll to the start of the current week when calendar mounts
-  useEffect(() => {
-    setTimeout(() => {
-      const currentWeekIndex = Math.floor(TODAY_INDEX / 7) * 7;
-      calendarRef.current?.scrollToIndex({ index: currentWeekIndex, animated: false, viewPosition: 0 });
-    }, 100);
-  }, []);
-
   const workout = workoutRes?.data?.workout;
-  const monthName = selectedDate.toLocaleString('pt-BR', { month: 'long' });
 
   const handleComplete = useCallback(() => {
     if (!workout) return;
@@ -219,7 +176,11 @@ export default function StudentDashboard() {
         <View className="flex-row items-center justify-between mb-6">
           <View className="flex-row items-center gap-3">
             <View className="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 items-center justify-center overflow-hidden">
-              <Ionicons name="person" size={20} color="#71717a" />
+              {user?.avatarUrl ? (
+                <Image source={{ uri: user.avatarUrl }} style={{ width: 40, height: 40 }} resizeMode="cover" />
+              ) : (
+                <Ionicons name="person" size={20} color="#71717a" />
+              )}
             </View>
             <View>
               <Text className="text-xs text-zinc-400">{greeting()},</Text>
@@ -232,93 +193,12 @@ export default function StudentDashboard() {
         </View>
 
         {/* Calendário — Semanal */}
-        <View className="mb-8">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="font-bold text-lg text-white">Calendário</Text>
-            <View className="flex-row items-center gap-1">
-              <Ionicons name="chevron-back" size={14} color="#71717a" />
-              <Text className="text-zinc-300 text-sm font-medium capitalize">{monthName}</Text>
-              <Ionicons name="chevron-forward" size={14} color="#71717a" />
-            </View>
-          </View>
-
-          <FlatList
-            ref={calendarRef}
-            data={ALL_DAYS}
-            keyExtractor={(item) => item.date.toDateString()}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            snapToInterval={width - 40}
-            snapToAlignment="start"
-            decelerationRate="fast"
-            contentContainerStyle={{ paddingHorizontal: 0 }}
-            getItemLayout={(_, index) => ({
-              length: dayItemWidth,
-              offset: dayItemWidth * index,
-              index,
-            })}
-            onScrollToIndexFailed={({ index }) => {
-              setTimeout(() => {
-                calendarRef.current?.scrollToIndex({ index, animated: false, viewPosition: 0 });
-              }, 200);
-            }}
-            renderItem={({ item }) => {
-              const isSelected = isSameDay(item.date, selectedDate);
-              const hasWorkout = item.isToday && !!workout;
-              return (
-                <TouchableOpacity
-                  onPress={() => setSelectedDate(item.date)}
-                  activeOpacity={0.8}
-                  style={{
-                    width: dayItemWidth,
-                    height: 80,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 44,
-                      height: 72,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      paddingTop: 8,
-                      paddingBottom: 8,
-                    }}
-                  >
-                    {/* Fundo pílula absoluto sempre em tela, alterando apenas OPACIDADE para resolver bug de sombra no Android */}
-                    <View
-                      style={{
-                        position: 'absolute',
-                        top: 0, left: 0, right: 0, bottom: 0,
-                        backgroundColor: '#b30f15',
-                        borderRadius: 22,
-                        shadowColor: '#b30f15',
-                        shadowOpacity: 0.4,
-                        shadowRadius: 8,
-                        shadowOffset: { width: 0, height: 4 },
-                        elevation: 8,
-                        opacity: isSelected ? 1 : 0,
-                      }}
-                    />
-                    <Text style={{ fontSize: 11, fontWeight: '600', color: isSelected ? 'rgba(255,255,255,0.9)' : '#71717a', marginBottom: 6, zIndex: 1 }}>
-                      {item.day}
-                    </Text>
-                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: isSelected ? '#fff' : '#e4e4e7', zIndex: 1 }}>
-                      {item.num}
-                    </Text>
-                    {hasWorkout && !isSelected && (
-                      <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#b30f15', marginTop: 4, position: 'absolute', bottom: 6, zIndex: 1 }} />
-                    )}
-                    {hasWorkout && isSelected && (
-                      <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#fff', marginTop: 4, position: 'absolute', bottom: 6, zIndex: 1 }} />
-                    )}
-                  </View>
-                </TouchableOpacity>
-              );
-            }}
-          />
-        </View>
+        <WeekCalendar
+          title="Calendário"
+          className="mb-8"
+          date={selectedDate}
+          onChange={setSelectedDate}
+        />
 
         {/* Treino do Dia */}
         <View className="mb-4">

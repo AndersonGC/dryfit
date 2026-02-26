@@ -31,21 +31,23 @@ function AuthGate() {
     if (isLoading) return;
     if (!rootNavigationState?.key) return; // Wait until navigation is fully mounted
 
-    const inAuthGroup = segments[0] === '(auth)';
+    const rootSegment = segments[0];
+    const inAuthGroup = rootSegment === '(auth)';
 
-    if (!isAuthenticated && !inAuthGroup) {
-      setTimeout(() => router.replace('/(auth)/login'), 1);
-      return;
-    }
-
-    if (isAuthenticated && inAuthGroup) {
-      setTimeout(() => {
-        if (user?.role === 'COACH') {
-          router.replace('/(coach)/dashboard');
-        } else {
-          router.replace('/(student)/dashboard');
-        }
-      }, 1);
+    if (isAuthenticated) {
+      if (inAuthGroup || !rootSegment) {
+        setTimeout(() => {
+          if (user?.role === 'COACH') {
+            router.replace('/(coach)/dashboard');
+          } else {
+            router.replace('/(student)/dashboard');
+          }
+        }, 1);
+      }
+    } else {
+      if (!inAuthGroup) {
+        setTimeout(() => router.replace('/(auth)/login'), 1);
+      }
     }
   }, [isAuthenticated, isLoading, segments, user, rootNavigationState?.key]);
 

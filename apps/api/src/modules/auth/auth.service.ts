@@ -1,11 +1,17 @@
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 import { customAlphabet } from 'nanoid';
+import { EmailService } from '../../services/email.service';
 
 const generateInviteCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 6);
+const generateOtp = customAlphabet('0123456789', 6);
 
 export class AuthService {
-  constructor(private prisma: PrismaClient) {}
+  private emailService: EmailService;
+
+  constructor(private prisma: PrismaClient) {
+    this.emailService = new EmailService();
+  }
 
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
@@ -21,6 +27,44 @@ export class AuthService {
 
     const { password: _, ...userWithoutPassword } = user;
     return userWithoutPassword;
+  }
+
+  async sendVerificationCode(email: string) {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    if (existingUser) {
+      throw new Error('Este e-mail já está cadastrado.');
+    }
+
+    const code = generateOtp();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
+    await this.prisma.emailVerification.upsert({
+      where: { email },
+      create: { email, code, expiresAt },
+      update: { code, expiresAt },
+    });
+
+    await this.emailService.sendVerificationCode(email, code);
+    return true;
+  }
+
+  async confirmVerificationCode(email: string, code: string) {
+    const record = await this.prisma.emailVerification.findUnique({
+      where: { email },
+    });
+
+    if (!record || record.code !== code) {
+      throw new Error('Código de verificação inválido.');
+    }
+
+    if (record.expiresAt < new Date()) {
+      throw new Error('O código de verificação expirou.');
+    }
+
+    await this.prisma.emailVerification.delete({ where: { id: record.id } });
+    return true;
   }
 
   async registerStudent(data: {

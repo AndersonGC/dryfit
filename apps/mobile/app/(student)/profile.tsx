@@ -1,28 +1,14 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as SecureStore from 'expo-secure-store';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
 import { useAlert } from '../../hooks/useCustomAlert';
 
-const getAvatarKey = (userId: string) => `student_avatar_uri_${userId}`;
-
 export default function StudentProfile() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, updateProfile } = useAuthStore();
   const { showAlert } = useAlert();
-  const [avatarUri, setAvatarUri] = useState<string | null>(null);
-
-  // Load persisted avatar on mount
-  useEffect(() => {
-    if (!user?.id) {
-      setAvatarUri(null);
-      return;
-    }
-    SecureStore.getItemAsync(getAvatarKey(user.id)).then((uri) => {
-      setAvatarUri(uri || null);
-    });
-  }, [user?.id]);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -34,12 +20,19 @@ export default function StudentProfile() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.8,
+      quality: 0.5,
+      base64: true,
     });
-    if (!result.canceled && result.assets[0]?.uri && user?.id) {
-      const uri = result.assets[0].uri;
-      setAvatarUri(uri);
-      await SecureStore.setItemAsync(getAvatarKey(user.id), uri);
+    if (!result.canceled && result.assets[0]?.base64) {
+      setIsUpdating(true);
+      try {
+        const base64Uri = `data:image/jpeg;base64,${result.assets[0].base64}`;
+        await updateProfile({ avatarUrl: base64Uri });
+      } catch (error) {
+        showAlert('Erro', 'Não foi possível atualizar a foto.');
+      } finally {
+        setIsUpdating(false);
+      }
     }
   };
 
@@ -57,10 +50,15 @@ export default function StudentProfile() {
               className="w-24 h-24 rounded-full bg-zinc-800 border-2 border-primary items-center justify-center mb-4 overflow-hidden"
               style={{ shadowColor: '#b30f15', shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 }}
             >
-              {avatarUri ? (
-                <Image source={{ uri: avatarUri }} style={{ width: 96, height: 96 }} resizeMode="cover" />
+              {user?.avatarUrl ? (
+                <Image source={{ uri: user.avatarUrl }} style={{ width: 96, height: 96 }} resizeMode="cover" />
               ) : (
                 <Ionicons name="person" size={44} color="#b30f15" />
+              )}
+              {isUpdating && (
+                <View className="absolute inset-0 bg-black/50 items-center justify-center">
+                  <ActivityIndicator color="white" />
+                </View>
               )}
             </View>
             {/* Edit button */}

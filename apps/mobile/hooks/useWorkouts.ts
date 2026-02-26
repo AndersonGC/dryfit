@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
-import type { Workout, User } from '@dryfit/types';
+import type { Workout, User, StudentWithWorkout } from '@dryfit/types';
 
 /** Returns YYYY-MM-DD in local time for a given Date object */
 export function toLocalDateString(date: Date): string {
@@ -64,7 +64,7 @@ export function useStudentsByDate(date: string) {
   return useQuery({
     queryKey: ['students', user?.id, date],
     queryFn: async () => {
-      const response = await api.get<{ students: (User & { hasWorkout: boolean })[] }>(
+      const response = await api.get<{ students: StudentWithWorkout[] }>(
         `/workouts/coach/by-date?date=${date}`
       );
       return response;
@@ -181,6 +181,60 @@ export function useCreateWorkout() {
       if (variables.scheduledAt) {
         // Extract YYYY-MM-DD from the scheduledAt to invalidate the specific date
         queryClient.invalidateQueries({ queryKey: ['students', user?.id, variables.scheduledAt.slice(0, 10)] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['students', user?.id, toLocalDateString(new Date())] });
+      }
+    },
+  });
+}
+
+// Update workout mutation (coach)
+export function useUpdateWorkout() {
+  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      workoutId,
+      ...data
+    }: {
+      workoutId: string;
+      title?: string;
+      description?: string;
+      type?: 'STRENGTH' | 'WOD' | 'HIIT' | 'CUSTOM';
+      date?: string; // Optional date for invalidation
+    }) => {
+      // Exclude date from the data sent to the API
+      const apiData = { ...data };
+      delete apiData.date;
+      const response = await api.patch<Workout>(`/workouts/${workoutId}`, apiData);
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['workouts', 'coach', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['students', user?.id] });
+      if (variables.date) {
+        queryClient.invalidateQueries({ queryKey: ['students', user?.id, variables.date] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['students', user?.id, toLocalDateString(new Date())] });
+      }
+    },
+  });
+}
+
+// Delete workout mutation (coach)
+export function useDeleteWorkout() {
+  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ workoutId, date }: { workoutId: string; date?: string }) => {
+      const response = await api.delete(`/workouts/${workoutId}`);
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['workouts', 'coach', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['students', user?.id] });
+      if (variables.date) {
+        queryClient.invalidateQueries({ queryKey: ['students', user?.id, variables.date] });
       } else {
         queryClient.invalidateQueries({ queryKey: ['students', user?.id, toLocalDateString(new Date())] });
       }

@@ -16,7 +16,9 @@ interface AuthState {
     password: string;
     name: string;
     inviteCode: string;
+    verificationToken: string;
   }) => Promise<User>;
+  updateProfile: (data: { avatarUrl?: string }) => Promise<User>;
   logout: () => Promise<void>;
   loadStoredAuth: () => Promise<void>;
 }
@@ -46,6 +48,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     await storage.setUser(user);
     set({ user, token, isAuthenticated: true });
     return user;
+  },
+
+  updateProfile: async (data) => {
+    const response = await api.patch<User>('/users/me', data);
+    const updatedUser = response.data;
+    await storage.setUser(updatedUser);
+    set({ user: updatedUser });
+    return updatedUser;
   },
 
   logout: async () => {
