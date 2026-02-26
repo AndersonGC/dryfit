@@ -1,13 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { Ionicons, FontAwesome6 } from '@expo/vector-icons';
-import type { User } from '@dryfit/types';
-
-export interface StudentWithWorkout extends User {
-    hasWorkout?: boolean;
-    workoutStatus?: 'PENDING' | 'COMPLETED' | null;
-    studentFeedback?: string | null;
-}
+import type { User, WorkoutType, StudentWithWorkout } from '@dryfit/types';
 
 export interface StudentCardProps {
     student: StudentWithWorkout;
@@ -25,8 +19,12 @@ export const StudentCard = ({ student, onPress, showOnlyActiveStatus = false }: 
                 className="p-4 rounded-[28px] flex-row items-center justify-between mb-4 bg-[#0c0c0c] border border-zinc-900"
             >
                 <View className="flex-row items-center gap-4">
-                    <View className="w-14 h-14 rounded-[20px] bg-white items-center justify-center">
-                        <Ionicons name="person" size={28} color="#71717a" />
+                    <View className="w-14 h-14 rounded-[20px] bg-white items-center justify-center overflow-hidden">
+                        {student.avatarUrl ? (
+                            <Image source={{ uri: student.avatarUrl }} style={{ width: 56, height: 56 }} resizeMode="cover" />
+                        ) : (
+                            <Ionicons name="person" size={28} color="#71717a" />
+                        )}
                     </View>
                     <View>
                         <Text className="font-extrabold text-[#f4f4f5] text-[17px] mb-0.5">
@@ -85,8 +83,14 @@ export const StudentCard = ({ student, onPress, showOnlyActiveStatus = false }: 
             className={`p-4 rounded-[28px] flex-row items-center justify-between mb-4 bg-[#0c0c0c] border border-zinc-900`}
         >
             <View className="flex-row items-center gap-4">
-                <View className="w-14 h-14 rounded-2xl bg-white items-center justify-center relative visible">
-                    <Ionicons name="person" size={28} color="#71717a" />
+                <View className="w-14 h-14 relative visible">
+                    <View className="w-14 h-14 rounded-2xl bg-white items-center justify-center overflow-hidden">
+                        {student.avatarUrl ? (
+                            <Image source={{ uri: student.avatarUrl }} style={{ width: 56, height: 56 }} resizeMode="cover" />
+                        ) : (
+                            <Ionicons name="person" size={28} color="#71717a" />
+                        )}
+                    </View>
                     {IconOverlay}
                 </View>
                 <View>

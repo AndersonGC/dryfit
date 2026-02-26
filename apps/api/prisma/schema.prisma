@@ -15,6 +15,7 @@ model User {
   email      String   @unique
   password   String
   name       String
+  avatarUrl  String?  @db.Text
   role       Role     @default(STUDENT)
   inviteCode String?  @unique
   coachId    String?

@@ -118,6 +118,7 @@ export class WorkoutsService {
         name: true,
         email: true,
         createdAt: true,
+        avatarUrl: true,
       },
       orderBy: { name: 'asc' },
     });
@@ -130,9 +131,13 @@ export class WorkoutsService {
         scheduledAt: range,
       },
       select: {
+        id: true,
         studentId: true,
         status: true,
         studentFeedback: true,
+        title: true,
+        description: true,
+        type: true,
       },
     });
 
@@ -144,7 +149,11 @@ export class WorkoutsService {
       return {
         ...student,
         hasWorkout: !!workout,
+        workoutId: workout?.id || null,
         workoutStatus: workout?.status || null,
+        workoutTitle: workout?.title || null,
+        workoutDescription: workout?.description || null,
+        workoutType: workout?.type || null,
         studentFeedback: workout?.studentFeedback || null,
       };
     });
@@ -163,6 +172,47 @@ export class WorkoutsService {
         student: { select: { id: true, name: true, email: true } },
       },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async updateWorkout(workoutId: string, coachId: string, data: Partial<CreateWorkoutData>) {
+    const workout = await this.prisma.workout.findFirst({
+      where: { id: workoutId, coachId },
+    });
+
+    if (!workout) {
+      throw new Error('Treino não encontrado ou você não tem permissão.');
+    }
+
+    if (workout.status !== 'PENDING') {
+      throw new Error('Apenas treinos pendentes podem ser alterados.');
+    }
+
+    return this.prisma.workout.update({
+      where: { id: workoutId },
+      data: {
+        title: data.title !== undefined ? data.title : workout.title,
+        description: data.description !== undefined ? data.description : workout.description,
+        type: data.type !== undefined ? data.type : workout.type,
+      },
+    });
+  }
+
+  async deleteWorkout(workoutId: string, coachId: string) {
+    const workout = await this.prisma.workout.findFirst({
+      where: { id: workoutId, coachId },
+    });
+
+    if (!workout) {
+      throw new Error('Treino não encontrado ou você não tem permissão.');
+    }
+
+    if (workout.status !== 'PENDING') {
+      throw new Error('Apenas treinos pendentes podem ser excluídos.');
+    }
+
+    return this.prisma.workout.delete({
+      where: { id: workoutId },
     });
   }
 }

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-function CoachTabBar({ state, navigation }: { state: { index: number; routes: Array<{ name: string }> }; navigation: { emit: (e: { type: string; target: string; canPreventDefault: boolean }) => { defaultPrevented: boolean }; navigate: (n: string) => void } }) {
+function CoachTabBar({ state, navigation }: { state: { index: number; routes: Array<{ name: string }> }; navigation: any }) {
   const router = useRouter();
 
   const tabs = [
@@ -25,7 +25,7 @@ function CoachTabBar({ state, navigation }: { state: { index: number; routes: Ar
             <TouchableOpacity
               key="fab"
               className="items-center"
-              onPress={() => router.push('/(coach)/dashboard')}
+              onPress={() => router.push('/(coach)/builder')}
               activeOpacity={0.85}
             >
               <View
@@ -51,9 +51,8 @@ function CoachTabBar({ state, navigation }: { state: { index: number; routes: Ar
           );
         }
 
-        // Visual: [dashboard(0), students(1), FAB(2-skip), stats(3), settings(4)]
-        // Routes: [dashboard(0), students(1),               stats(2), settings(3)]
-        const routeIndex = index < 2 ? index : index - 1;
+        // Routes: [dashboard(0), students(1), builder(2), stats(3), settings(4)]
+        const routeIndex = index;
         const isFocused = state.index === routeIndex;
 
         const onPress = () => {
@@ -88,6 +87,7 @@ export default function CoachLayout() {
     >
       <Tabs.Screen name="dashboard" />
       <Tabs.Screen name="students" />
+      <Tabs.Screen name="builder" options={{ href: null }} />
       <Tabs.Screen name="stats" />
       <Tabs.Screen name="settings" />
     </Tabs>

@@ -26,6 +26,7 @@ export async function usersRoutes(fastify: FastifyInstance) {
           coachId: true,
           coach: { select: { name: true } },
           createdAt: true,
+          avatarUrl: true,
         },
       });
 
@@ -34,6 +35,49 @@ export async function usersRoutes(fastify: FastifyInstance) {
       }
 
       return reply.send(user);
+    },
+  });
+
+  // PATCH /users/me — Update current user data
+  fastify.patch<{
+    Body: { avatarUrl?: string };
+  }>('/me', {
+    preHandler: [authenticate],
+    schema: {
+      body: {
+        type: 'object',
+        properties: {
+          avatarUrl: { type: 'string' },
+        },
+      },
+    },
+    handler: async (request, reply) => {
+      const jwtUser = request.user as JWTPayload;
+      const { avatarUrl } = request.body;
+
+      try {
+        const user = await fastify.prisma.user.update({
+          where: { id: jwtUser.id },
+          data: {
+            ...(avatarUrl !== undefined && { avatarUrl }),
+          },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            inviteCode: true,
+            coachId: true,
+            coach: { select: { name: true } },
+            createdAt: true,
+            avatarUrl: true,
+          },
+        });
+
+        return reply.send(user);
+      } catch (error) {
+        return reply.status(500).send({ error: 'Erro ao atualizar usuário.' });
+      }
     },
   });
 
@@ -49,6 +93,7 @@ export async function usersRoutes(fastify: FastifyInstance) {
           name: true,
           email: true,
           createdAt: true,
+          avatarUrl: true,
         },
         orderBy: { name: 'asc' },
       });

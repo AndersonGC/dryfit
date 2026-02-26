@@ -7,6 +7,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  avatarUrl?: string | null;
   role: Role;
   inviteCode?: string;
   coachId?: string;
@@ -28,6 +29,16 @@ export interface Workout {
   createdAt: string;
   // Included by the API when fetching for the student view
   coach?: { name: string };
+}
+
+export interface StudentWithWorkout extends User {
+  hasWorkout?: boolean;
+  workoutId?: string | null;
+  workoutStatus?: 'PENDING' | 'COMPLETED' | null;
+  workoutTitle?: string | null;
+  workoutDescription?: string | null;
+  workoutType?: WorkoutType | null;
+  studentFeedback?: string | null;
 }
 
 // API Request/Response types

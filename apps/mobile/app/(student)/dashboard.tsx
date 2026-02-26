@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   FlatList,
   useWindowDimensions,
+  Image,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -175,7 +176,11 @@ export default function StudentDashboard() {
         <View className="flex-row items-center justify-between mb-6">
           <View className="flex-row items-center gap-3">
             <View className="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 items-center justify-center overflow-hidden">
-              <Ionicons name="person" size={20} color="#71717a" />
+              {user?.avatarUrl ? (
+                <Image source={{ uri: user.avatarUrl }} style={{ width: 40, height: 40 }} resizeMode="cover" />
+              ) : (
+                <Ionicons name="person" size={20} color="#71717a" />
+              )}
             </View>
             <View>
               <Text className="text-xs text-zinc-400">{greeting()},</Text>
