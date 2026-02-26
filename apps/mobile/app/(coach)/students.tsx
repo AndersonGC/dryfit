@@ -1,13 +1,20 @@
+import { useState, useMemo } from 'react';
 import { View, Text, FlatList, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useStudents } from '../../hooks/useWorkouts';
 import type { User } from '@dryfit/types';
 
 import { StudentCard } from '../../components/StudentCard';
+import { SearchBar } from '../../components/SearchBar';
 
 export default function CoachStudents() {
+  const [search, setSearch] = useState('');
   const { data, isLoading } = useStudents();
   const students: User[] = data?.data?.students ?? [];
+
+  const filteredStudents = useMemo(() => {
+    return students.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
+  }, [students, search]);
 
   return (
     <View className="flex-1 bg-[#0a0a0a]">
@@ -15,11 +22,20 @@ export default function CoachStudents() {
       <View className="px-5 mb-4 flex-row items-center justify-between">
         <Text className="text-2xl font-extrabold text-white tracking-tight">Alunos</Text>
         <View className="bg-primary/10 border border-primary/30 px-3 py-1 rounded-full">
-          <Text className="text-primary text-xs font-bold">{students.length} total</Text>
+          <Text className="text-primary text-xs font-bold">{filteredStudents.length} total</Text>
         </View>
       </View>
+
+      <View className="px-5">
+        <SearchBar
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Buscar aluno..."
+        />
+      </View>
+
       <FlatList
-        data={students}
+        data={filteredStudents}
         keyExtractor={(i) => i.id}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
@@ -36,11 +52,13 @@ export default function CoachStudents() {
           )
         }
         renderItem={({ item }) => (
-          <StudentCard
-            student={item}
-            onPress={() => { }}
-            showOnlyActiveStatus={true}
-          />
+          <View className="px-5">
+            <StudentCard
+              student={item}
+              onPress={() => { }}
+              showOnlyActiveStatus={true}
+            />
+          </View>
         )}
       />
     </View>

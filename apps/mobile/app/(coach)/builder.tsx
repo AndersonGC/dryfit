@@ -21,6 +21,7 @@ import { useAlert } from '../../hooks/useCustomAlert';
 import { StudentCard } from '../../components/StudentCard';
 import { CustomDatePickerModal } from '../../components/CustomDatePickerModal';
 import { WeekCalendar } from '../../components/WeekCalendar';
+import { SearchBar } from '../../components/SearchBar';
 import type { User, WorkoutType, StudentWithWorkout } from '@dryfit/types';
 
 const WORKOUT_TYPES: WorkoutType[] = ['STRENGTH', 'WOD', 'HIIT', 'CUSTOM'];
@@ -166,18 +167,11 @@ export default function CoachBuilderScreen() {
       </View>
 
       {/* Search */}
-      <View className="relative mb-6">
-        <Ionicons name="search-outline" size={20} color="#71717a" style={{ position: 'absolute', left: 16, top: 14, zIndex: 1 }} />
-        <TextInput
-          className="w-full pl-12 pr-12 py-4 bg-zinc-900 rounded-2xl text-white"
-          placeholder="Buscar aluno..."
-          placeholderTextColor="#52525b"
-          value={search}
-          onChangeText={setSearch}
-          style={{ fontSize: 15 }}
-        />
-        <Ionicons name="options-outline" size={20} color="#71717a" style={{ position: 'absolute', right: 16, top: 14 }} />
-      </View>
+      <SearchBar
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Buscar aluno..."
+      />
 
       {/* Calendário — Semanal */}
       <WeekCalendar
