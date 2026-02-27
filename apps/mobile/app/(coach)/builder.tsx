@@ -117,7 +117,7 @@ export default function CoachBuilderScreen() {
           type: workoutType,
           date: toLocalDateString(workoutDate),
         });
-        showAlert('✅ Sucesso!', `O treino de ${selectedStudent.name} foi atualizado.`);
+        showAlert('Sucesso!', `O treino de ${selectedStudent.name} foi atualizado.`);
       } else {
         await createWorkout.mutateAsync({
           studentId: selectedStudent.id,
@@ -126,7 +126,7 @@ export default function CoachBuilderScreen() {
           type: workoutType,
           scheduledAt: `${toLocalDateString(workoutDate)}T12:00:00.000Z`,
         });
-        showAlert('✅ Treino criado!', `Treino enviado para ${selectedStudent.name}.`);
+        showAlert('Treino criado!', `Treino enviado para ${selectedStudent.name}.`);
       }
       setModalVisible(false);
     } catch {
@@ -154,7 +154,7 @@ export default function CoachBuilderScreen() {
         date: toLocalDateString(workoutDate),
       });
       setModalVisible(false);
-      showAlert('🗑️ Excluído', `O treino de ${selectedStudent.name} foi removido.`);
+      showAlert('Excluído', `O treino de ${selectedStudent.name} foi removido.`);
     } catch {
       showAlert('Erro', 'Não foi possível excluir o treino.');
     }
@@ -166,19 +166,19 @@ export default function CoachBuilderScreen() {
         <Text className="text-2xl font-extrabold text-white tracking-tight">Builder</Text>
       </View>
 
-      {/* Search */}
-      <SearchBar
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Buscar aluno..."
-      />
-
       {/* Calendário — Semanal */}
       <WeekCalendar
         title="Selecionar Data"
         date={dashboardDate}
         onChange={setDashboardDate}
         className="mb-6 -mx-5 px-5"
+      />
+
+      {/* Search */}
+      <SearchBar
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Buscar aluno..."
       />
 
       {/* Section title */}
