@@ -1,6 +1,21 @@
 export type Role = 'COACH' | 'STUDENT';
 
-export type WorkoutType = 'STRENGTH' | 'WOD' | 'HIIT' | 'CUSTOM';
+export interface WorkoutCategory {
+  id: string;
+  name: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WorkoutBlock {
+  id: string;
+  workoutId: string;
+  categoryId: string;
+  category?: WorkoutCategory;
+  description?: string | null;
+  order: number;
+}
+
 export type WorkoutStatus = 'PENDING' | 'COMPLETED';
 
 export interface User {
@@ -17,9 +32,8 @@ export interface User {
 export interface Workout {
   id: string;
   title: string;
-  description?: string | null;
   youtubeVideoId?: string | null;
-  type: WorkoutType;
+  blocks?: WorkoutBlock[];
   status: WorkoutStatus;
   coachId: string;
   studentId: string;
@@ -36,8 +50,7 @@ export interface StudentWithWorkout extends User {
   workoutId?: string | null;
   workoutStatus?: 'PENDING' | 'COMPLETED' | null;
   workoutTitle?: string | null;
-  workoutDescription?: string | null;
-  workoutType?: WorkoutType | null;
+  workoutBlocks?: WorkoutBlock[] | null;
   studentFeedback?: string | null;
 }
 
@@ -61,9 +74,8 @@ export interface RegisterStudentRequest {
 
 export interface CreateWorkoutRequest {
   title: string;
-  description?: string;
   youtubeVideoId?: string;
-  type: WorkoutType;
+  blocks: { categoryId: string; description: string }[];
   studentId: string;
   scheduledAt?: string; // ISO 8601 — allows future scheduling
 }

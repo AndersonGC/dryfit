@@ -16,9 +16,8 @@ export async function workoutsRoutes(fastify: FastifyInstance) {
   fastify.post<{
     Body: {
       title: string;
-      description?: string;
       youtubeVideoId?: string;
-      type: 'STRENGTH' | 'WOD' | 'HIIT' | 'CUSTOM';
+      blocks: { categoryId: string; description: string }[];
       studentId: string;
       scheduledAt?: string;
     };
@@ -27,12 +26,21 @@ export async function workoutsRoutes(fastify: FastifyInstance) {
     schema: {
       body: {
         type: 'object',
-        required: ['title', 'studentId'],
+        required: ['title', 'studentId', 'blocks'],
         properties: {
           title: { type: 'string', minLength: 1 },
-          description: { type: 'string' },
           youtubeVideoId: { type: 'string' },
-          type: { type: 'string', enum: ['STRENGTH', 'WOD', 'HIIT', 'CUSTOM'] },
+          blocks: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['categoryId', 'description'],
+              properties: {
+                categoryId: { type: 'string' },
+                description: { type: 'string' },
+              }
+            }
+          },
           studentId: { type: 'string' },
           // ISO 8601 date string — e.g. "2026-02-25T14:00:00.000Z"
           scheduledAt: { type: 'string' },
@@ -145,8 +153,7 @@ export async function workoutsRoutes(fastify: FastifyInstance) {
     Params: { id: string };
     Body: {
       title?: string;
-      description?: string;
-      type?: 'STRENGTH' | 'WOD' | 'HIIT' | 'CUSTOM';
+      blocks?: { categoryId: string; description: string }[];
     };
   }>('/:id', {
     preHandler: [requireCoach],
@@ -155,8 +162,17 @@ export async function workoutsRoutes(fastify: FastifyInstance) {
         type: 'object',
         properties: {
           title: { type: 'string', minLength: 1 },
-          description: { type: 'string' },
-          type: { type: 'string', enum: ['STRENGTH', 'WOD', 'HIIT', 'CUSTOM'] },
+          blocks: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['categoryId', 'description'],
+              properties: {
+                categoryId: { type: 'string' },
+                description: { type: 'string' },
+              }
+            }
+          },
         },
       },
     },

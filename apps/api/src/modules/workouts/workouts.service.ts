@@ -2,9 +2,8 @@ import { PrismaClient } from '@prisma/client';
 
 interface CreateWorkoutData {
   title: string;
-  description?: string;
   youtubeVideoId?: string;
-  type: 'STRENGTH' | 'WOD' | 'HIIT' | 'CUSTOM';
+  blocks: { categoryId: string; description: string }[];
   studentId: string;
   coachId: string;
   scheduledAt?: string; // ISO 8601 — allows future scheduling
@@ -41,13 +40,23 @@ export class WorkoutsService {
     const workout = await this.prisma.workout.create({
       data: {
         title: data.title,
-        description: data.description,
         youtubeVideoId: data.youtubeVideoId,
-        type: data.type,
+        blocks: {
+          create: data.blocks.map((block, index) => ({
+            categoryId: block.categoryId,
+            description: block.description,
+            order: index,
+          }))
+        },
         coachId: data.coachId,
         studentId: data.studentId,
         scheduledAt,
       },
+      include: {
+        blocks: {
+          include: { category: true }
+        }
+      }
     });
 
     return workout;
@@ -68,6 +77,7 @@ export class WorkoutsService {
       },
       include: {
         coach: { select: { name: true } },
+        blocks: { include: { category: true }, orderBy: { order: 'asc' } },
       },
       orderBy: { scheduledAt: 'desc' },
     });
@@ -76,7 +86,7 @@ export class WorkoutsService {
   async getStudentWorkouts(studentId: string) {
     return this.prisma.workout.findMany({
       where: { studentId },
-      include: { coach: { select: { name: true } } },
+      include: { coach: { select: { name: true } }, blocks: { include: { category: true }, orderBy: { order: 'asc' } } },
       orderBy: { scheduledAt: 'desc' },
     });
   }
@@ -85,7 +95,7 @@ export class WorkoutsService {
   async getActiveWorkout(studentId: string) {
     return this.prisma.workout.findFirst({
       where: { studentId, status: 'PENDING' },
-      include: { coach: { select: { name: true } } },
+      include: { coach: { select: { name: true } }, blocks: { include: { category: true }, orderBy: { order: 'asc' } } },
       orderBy: { scheduledAt: 'desc' },
     });
   }
@@ -136,8 +146,10 @@ export class WorkoutsService {
         status: true,
         studentFeedback: true,
         title: true,
-        description: true,
-        type: true,
+        blocks: {
+          include: { category: true },
+          orderBy: { order: 'asc' }
+        },
       },
     });
 
@@ -152,8 +164,7 @@ export class WorkoutsService {
         workoutId: workout?.id || null,
         workoutStatus: workout?.status || null,
         workoutTitle: workout?.title || null,
-        workoutDescription: workout?.description || null,
-        workoutType: workout?.type || null,
+        workoutBlocks: workout?.blocks || null,
         studentFeedback: workout?.studentFeedback || null,
       };
     });
@@ -170,6 +181,7 @@ export class WorkoutsService {
       where: { coachId },
       include: {
         student: { select: { id: true, name: true, email: true } },
+        blocks: { include: { category: true }, orderBy: { order: 'asc' } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -188,13 +200,28 @@ export class WorkoutsService {
       throw new Error('Apenas treinos pendentes podem ser alterados.');
     }
 
+    // Replace blocks if provided
+    let blocksUpdate = {};
+    if (data.blocks) {
+      blocksUpdate = {
+        deleteMany: {}, // Delete all existing blocks
+        create: data.blocks.map((block, index) => ({
+          categoryId: block.categoryId,
+          description: block.description,
+          order: index,
+        }))
+      };
+    }
+
     return this.prisma.workout.update({
       where: { id: workoutId },
       data: {
         title: data.title !== undefined ? data.title : workout.title,
-        description: data.description !== undefined ? data.description : workout.description,
-        type: data.type !== undefined ? data.type : workout.type,
+        blocks: blocksUpdate,
       },
+      include: {
+        blocks: { include: { category: true }, orderBy: { order: 'asc' } }
+      }
     });
   }
 

@@ -166,9 +166,8 @@ export function useCreateWorkout() {
   return useMutation({
     mutationFn: async (data: {
       title: string;
-      description?: string;
       youtubeVideoId?: string;
-      type: 'STRENGTH' | 'WOD' | 'HIIT' | 'CUSTOM';
+      blocks: { categoryId: string; description: string }[];
       studentId: string;
       scheduledAt?: string; // ISO 8601 — allows future scheduling
     }) => {
@@ -199,8 +198,7 @@ export function useUpdateWorkout() {
     }: {
       workoutId: string;
       title?: string;
-      description?: string;
-      type?: 'STRENGTH' | 'WOD' | 'HIIT' | 'CUSTOM';
+      blocks?: { categoryId: string; description: string }[];
       date?: string; // Optional date for invalidation
     }) => {
       // Exclude date from the data sent to the API

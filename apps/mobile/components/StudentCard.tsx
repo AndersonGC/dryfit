@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { Ionicons, FontAwesome6 } from '@expo/vector-icons';
-import type { User, WorkoutType, StudentWithWorkout } from '@dryfit/types';
+import type { User, StudentWithWorkout } from '@dryfit/types';
 
 export interface StudentCardProps {
     student: StudentWithWorkout;

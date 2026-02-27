@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,15 +22,8 @@ import { StudentCard } from '../../components/StudentCard';
 import { CustomDatePickerModal } from '../../components/CustomDatePickerModal';
 import { WeekCalendar } from '../../components/WeekCalendar';
 import { SearchBar } from '../../components/SearchBar';
-import type { User, WorkoutType, StudentWithWorkout } from '@dryfit/types';
-
-const WORKOUT_TYPES: WorkoutType[] = ['STRENGTH', 'WOD', 'HIIT', 'CUSTOM'];
-const WORKOUT_LABELS: Record<WorkoutType, string> = {
-  STRENGTH: 'FOR TIME',
-  WOD: 'WOD',
-  HIIT: 'EMOM',
-  CUSTOM: 'AMRAP',
-};
+import { useCategories } from '../../hooks/useCategories';
+import type { User, StudentWithWorkout } from '@dryfit/types';
 
 
 
@@ -52,8 +45,10 @@ export default function CoachBuilderScreen() {
   const [selectedStudent, setSelectedStudent] = useState<StudentWithWorkout | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [workoutTitle, setWorkoutTitle] = useState('');
-  const [workoutType, setWorkoutType] = useState<WorkoutType>('STRENGTH');
-  const [workoutDescription, setWorkoutDescription] = useState('');
+  const [blocks, setBlocks] = useState<{ id: string; categoryId: string; description: string; showPicker: boolean }[]>([]);
+
+  const { data: categoriesResponse, isLoading: loadingCategories } = useCategories();
+  const categories = categoriesResponse?.data?.categories ?? [];
 
   // Dashboard date controller
   const [dashboardDate, setDashboardDate] = useState<Date>(new Date());
@@ -75,6 +70,15 @@ export default function CoachBuilderScreen() {
     }, [refetchStudents])
   );
 
+  useEffect(() => {
+    // Only set default category when blocks is empty AND categories are loaded
+    if (blocks.length === 0 && categories.length > 0) {
+      setBlocks([
+        { id: Date.now().toString(), categoryId: categories[0].id, description: '', showPicker: false }
+      ]);
+    }
+  }, [categories, blocks.length]);
+
   const filteredStudents = useMemo(
     () => students.filter((s) => s.name.toLowerCase().includes(search.toLowerCase())),
     [students, search]
@@ -83,8 +87,16 @@ export default function CoachBuilderScreen() {
   const openBuilder = useCallback((student: StudentWithWorkout) => {
     setSelectedStudent(student);
     setWorkoutTitle(student.workoutTitle || '');
-    setWorkoutDescription(student.workoutDescription || '');
-    setWorkoutType((student.workoutType as WorkoutType) || 'STRENGTH');
+    if (student.workoutBlocks && student.workoutBlocks.length > 0) {
+      setBlocks(student.workoutBlocks.map(b => ({
+        id: b.id, // Or generate random string to act as key
+        categoryId: b.categoryId,
+        description: b.description || '',
+        showPicker: false,
+      })));
+    } else {
+      setBlocks([{ id: Date.now().toString(), categoryId: categories[0]?.id ?? '', description: '', showPicker: false }]);
+    }
     setWorkoutDate(dashboardDate); // Pre-select the date that the coach was looking at
     setModalVisible(true);
   }, [dashboardDate]);
@@ -108,13 +120,22 @@ export default function CoachBuilderScreen() {
       return;
     }
 
+    if (blocks.length === 0) {
+      showAlert('Atenção', 'Adicione pelo menos um bloco de treino.');
+      return;
+    }
+
+    const validBlocks = blocks.map(b => ({
+      categoryId: b.categoryId,
+      description: b.description.trim()
+    }));
+
     try {
       if (selectedStudent.workoutId) {
         await updateWorkout.mutateAsync({
           workoutId: selectedStudent.workoutId,
           title: workoutTitle.trim(),
-          description: workoutDescription.trim(),
-          type: workoutType,
+          blocks: validBlocks,
           date: toLocalDateString(workoutDate),
         });
         showAlert('Sucesso!', `O treino de ${selectedStudent.name} foi atualizado.`);
@@ -122,8 +143,7 @@ export default function CoachBuilderScreen() {
         await createWorkout.mutateAsync({
           studentId: selectedStudent.id,
           title: workoutTitle.trim(),
-          description: workoutDescription.trim(),
-          type: workoutType,
+          blocks: validBlocks,
           scheduledAt: `${toLocalDateString(workoutDate)}T12:00:00.000Z`,
         });
         showAlert('Treino criado!', `Treino enviado para ${selectedStudent.name}.`);
@@ -262,36 +282,102 @@ export default function CoachBuilderScreen() {
               onSelectDate={setWorkoutDate}
             />
 
-            {/* Tipo */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5">
-              <View className="flex-row gap-2">
-                {WORKOUT_TYPES.map((t) => (
+            {/* Multiplos Blocos do Treino */}
+            {blocks.map((block, index) => (
+              <View key={block.id} className="mb-6 relative">
+                {/* Remove button se tiver mais que 1 bloco */}
+                {blocks.length > 1 && (
                   <TouchableOpacity
-                    key={t}
-                    onPress={() => setWorkoutType(t)}
-                    className={`px-4 py-2 rounded-full ${workoutType === t ? 'bg-white' : 'bg-white/10'}`}
+                    onPress={() => {
+                      const newBlocks = [...blocks];
+                      newBlocks.splice(index, 1);
+                      setBlocks(newBlocks);
+                    }}
+                    className="absolute -top-3 -right-2 z-10 bg-zinc-800 rounded-full p-2 border border-zinc-700"
                   >
-                    <Text className={`text-xs font-bold ${workoutType === t ? 'text-primary' : 'text-white'}`}>
-                      {WORKOUT_LABELS[t]}
-                    </Text>
+                    <Ionicons name="close" size={16} color="#ef4444" />
                   </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
+                )}
 
-            {/* Descrição */}
-            <View className="mb-6 bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg p-2">
-              <TextInput
-                className="text-white text-base px-3 pt-3 pb-8 text-left"
-                placeholder="Descreva o treino livremente aqui..."
-                placeholderTextColor="#52525b"
-                multiline={true}
-                value={workoutDescription}
-                onChangeText={setWorkoutDescription}
-                style={{ minHeight: 120, textAlignVertical: 'top' }}
-                blurOnSubmit={false}
-              />
-            </View>
+                <View className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg">
+                  {/* Category header */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      const newBlocks = [...blocks];
+                      newBlocks[index].showPicker = !newBlocks[index].showPicker;
+                      setBlocks(newBlocks);
+                    }}
+                    className="px-4 py-4 border-b border-zinc-800 bg-zinc-800/50 flex-row items-center justify-between"
+                  >
+                    <View className="flex-row items-center gap-3">
+                      <Ionicons name="barbell-outline" size={20} color="#71717a" />
+                      <View>
+                        <Text className="text-zinc-500 text-[10px] font-medium mb-1 tracking-wider uppercase">Categoria</Text>
+                        <Text className="text-white text-sm font-bold uppercase">
+                          {categories.find(c => c.id === block.categoryId)?.name || 'SELECIONE'}
+                        </Text>
+                      </View>
+                    </View>
+                    <Ionicons name={block.showPicker ? "chevron-up" : "chevron-down"} size={16} color="#71717a" />
+                  </TouchableOpacity>
+
+                  {/* Category Picker inline */}
+                  {block.showPicker && (
+                    <View className="bg-zinc-900 border-b border-zinc-800 p-2">
+                      {loadingCategories ? (
+                        <ActivityIndicator color="#b30f15" className="py-4" />
+                      ) : (
+                        categories.map((cat) => (
+                          <TouchableOpacity
+                            key={cat.id}
+                            onPress={() => {
+                              const newBlocks = [...blocks];
+                              newBlocks[index].categoryId = cat.id;
+                              newBlocks[index].showPicker = false;
+                              setBlocks(newBlocks);
+                            }}
+                            className={`px-4 py-3 rounded-xl mb-1 ${block.categoryId === cat.id ? 'bg-white/10' : ''}`}
+                          >
+                            <Text className={`text-sm font-bold uppercase ${block.categoryId === cat.id ? 'text-primary' : 'text-zinc-300'}`}>
+                              {cat.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))
+                      )}
+                    </View>
+                  )}
+
+                  {/* Description */}
+                  <TextInput
+                    className="text-white text-base px-4 pt-4 pb-8"
+                    placeholder="Descreva o treino deste bloco..."
+                    placeholderTextColor="#52525b"
+                    multiline={true}
+                    value={block.description}
+                    onChangeText={(text) => {
+                      const newBlocks = [...blocks];
+                      newBlocks[index].description = text;
+                      setBlocks(newBlocks);
+                    }}
+                    style={{ minHeight: 120, textAlignVertical: 'top' }}
+                    blurOnSubmit={false}
+                  />
+                </View>
+              </View>
+            ))}
+
+            <TouchableOpacity
+              onPress={() => {
+                setBlocks([...blocks, { id: Date.now().toString(), categoryId: categories[0]?.id ?? '', description: '', showPicker: false }]);
+              }}
+              className="w-full py-4 rounded-2xl mb-8 items-center justify-center flex-row border-2 border-dashed border-zinc-600 bg-transparent"
+              style={{ borderStyle: 'dashed' }}
+            >
+              <View className="w-5 h-5 rounded-full bg-white items-center justify-center mr-2">
+                <Ionicons name="add" size={16} color="#0f1115" />
+              </View>
+              <Text className="text-white font-bold text-sm tracking-widest">ADD</Text>
+            </TouchableOpacity>
 
             {selectedStudent?.workoutId && (
               <TouchableOpacity

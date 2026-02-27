@@ -5,6 +5,7 @@ import { prismaPlugin } from './plugins/prisma';
 import { authRoutes } from './modules/auth/auth.routes';
 import { workoutsRoutes } from './modules/workouts/workouts.routes';
 import { usersRoutes } from './modules/users/users.routes';
+import { categoriesRoutes } from './modules/categories/categories.routes';
 
 const app = Fastify({
   logger: {
@@ -28,6 +29,7 @@ app.register(prismaPlugin);
 app.register(authRoutes, { prefix: '/auth' });
 app.register(workoutsRoutes, { prefix: '/workouts' });
 app.register(usersRoutes, { prefix: '/users' });
+app.register(categoriesRoutes, { prefix: '/categories' });
 
 // Health check
 app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));

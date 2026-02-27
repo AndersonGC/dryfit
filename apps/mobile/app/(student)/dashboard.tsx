@@ -19,15 +19,6 @@ import { useAuthStore } from '../../store/auth.store';
 import { useActiveWorkout, useCompleteWorkout, toLocalDateString } from '../../hooks/useWorkouts';
 import { WeekCalendar } from '../../components/WeekCalendar';
 import { useAlert } from '../../hooks/useCustomAlert';
-import type { WorkoutType } from '@dryfit/types';
-
-const WORKOUT_LABELS: Record<WorkoutType, string> = {
-  STRENGTH: 'FOR TIME',
-  WOD: 'WOD',
-  HIIT: 'EMOM',
-  CUSTOM: 'AMRAP',
-};
-
 
 
 export default function StudentDashboard() {
@@ -95,25 +86,7 @@ export default function StudentDashboard() {
     }
   }, []);
 
-  const renderDescription = () => {
-    let descriptionText = workout?.description || '';
-    const videoIdField = workout?.youtubeVideoId || '';
-
-    if (videoIdField) {
-      const isUrl = /(?:youtu\.be\/|youtube\.com\/)/.test(videoIdField);
-      const isDirectId = videoIdField.length === 11 && !isUrl;
-
-      if (isDirectId) {
-        if (!descriptionText.includes(videoIdField)) {
-          descriptionText += `\nhttps://youtu.be/${videoIdField}`;
-        }
-      } else {
-        if (!descriptionText.includes(videoIdField)) {
-          descriptionText += `\n${videoIdField}`;
-        }
-      }
-    }
-
+  const renderBlockDescription = (descriptionText: string) => {
     if (!descriptionText.trim()) return null;
 
     const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})\S*/g;
@@ -255,14 +228,41 @@ export default function StudentDashboard() {
 
                 {/* Content */}
                 <View className="relative z-10 p-6 flex-1 justify-center">
-                  <View className="bg-primary px-3 py-1.5 rounded-lg mb-3 self-start">
-                    <Text className="text-[11px] font-bold text-white uppercase tracking-wider">
-                      {WORKOUT_LABELS[workout.type] || workout.type}
-                    </Text>
-                  </View>
-                  <Text className="text-3xl font-extrabold text-white mb-2 tracking-tight">{workout.title}</Text>
+                  <Text className="text-3xl font-extrabold text-white mb-6 tracking-tight">{workout.title}</Text>
 
-                  {renderDescription()}
+                  {/* Workout Global Video */}
+                  {workout.youtubeVideoId && (
+                    <View className="rounded-2xl overflow-hidden mb-6 bg-black border border-zinc-800">
+                      <YoutubePlayer
+                        height={200}
+                        play={playing}
+                        videoId={workout.youtubeVideoId}
+                        onChangeState={onStateChange}
+                        initialPlayerParams={{
+                          preventFullScreen: true,
+                          modestbranding: 1,
+                          rel: 0
+                        }}
+                      />
+                    </View>
+                  )}
+
+                  {/* Blocos */}
+                  {workout.blocks && workout.blocks.map((block: any, index: number) => (
+                    <View key={block.id || index.toString()} className="mb-2">
+                      {index > 0 && (
+                        <View className="h-[1px] bg-zinc-800 w-full mb-6 mt-2" />
+                      )}
+
+                      <View className="bg-primary px-3 py-1.5 rounded-lg mb-4 self-start">
+                        <Text className="text-[11px] font-bold text-white uppercase tracking-wider">
+                          {block.category?.name || 'TREINO'}
+                        </Text>
+                      </View>
+
+                      {renderBlockDescription(block.description || '')}
+                    </View>
+                  ))}
                 </View>
               </View>
 

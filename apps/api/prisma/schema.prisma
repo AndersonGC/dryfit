@@ -43,13 +43,12 @@ enum Role {
 model Workout {
   id             String        @id @default(cuid())
   title          String
-  description    String?       @db.Text
   youtubeVideoId String?
-  type           WorkoutType   @default(STRENGTH)
   status         WorkoutStatus @default(PENDING)
   scheduledAt    DateTime      @default(now())
   completedAt    DateTime?
   studentFeedback String?       @db.Text
+  blocks         WorkoutBlock[] @relation("WorkoutBlocks")
 
   coachId   String
   coach     User   @relation("CoachWorkouts", fields: [coachId], references: [id])
@@ -63,11 +62,13 @@ model Workout {
   @@index([coachId])
 }
 
-enum WorkoutType {
-  STRENGTH
-  WOD
-  HIIT
-  CUSTOM
+model WorkoutCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  blocks    WorkoutBlock[] @relation("CategoryBlocks")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum WorkoutStatus {
@@ -91,4 +92,22 @@ model EmailVerification {
   code      String
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model WorkoutBlock {
+  id          String   @id @default(cuid())
+  workoutId   String
+  workout     Workout  @relation("WorkoutBlocks", fields: [workoutId], references: [id], onDelete: Cascade)
+  
+  categoryId  String
+  category    WorkoutCategory @relation("CategoryBlocks", fields: [categoryId], references: [id])
+  
+  description String?  @db.Text
+  order       Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([workoutId])
+  @@index([categoryId])
 }

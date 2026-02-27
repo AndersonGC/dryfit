@@ -14,6 +14,19 @@ async function main() {
     { name: 'Coach Maria', email: 'maria@dryfit.app', password: 'coach1234' },
   ];
 
+  // Create categories
+  const categoriesMap = new Map<string, string>();
+  const categoryNames = ['FORTIME', 'WOD', 'EMOM', 'AMRAP', 'STRENGTH', 'HIIT', 'CUSTOM'];
+  for (const name of categoryNames) {
+    const category = await prisma.workoutCategory.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+    categoriesMap.set(name, category.id);
+    console.log(`✅ Category created: ${category.name}`);
+  }
+
   for (const coach of coaches) {
     const hashedPassword = await bcrypt.hash(coach.password, 12);
     const inviteCode = generateInviteCode();
