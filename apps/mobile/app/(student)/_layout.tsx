@@ -45,7 +45,7 @@ export default function StudentLayout() {
   return (
     <Tabs
       tabBar={(props) => <StudentTabBar state={props.state} navigation={props.navigation} />}
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: '#0f1115' } }}
     >
       <Tabs.Screen name="dashboard" />
       <Tabs.Screen name="explore" />

@@ -63,7 +63,7 @@ export default function RootLayout() {
         <GestureHandlerRootView className="flex-1">
           <StatusBar style="light" />
           <AuthGate />
-          <Stack screenOptions={{ headerShown: false }}>
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0a0a0a' } }}>
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="(coach)" />
             <Stack.Screen name="(student)" />

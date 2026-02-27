@@ -83,7 +83,7 @@ export default function CoachLayout() {
   return (
     <Tabs
       tabBar={(props) => <CoachTabBar state={props.state} navigation={props.navigation} />}
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: '#0a0a0a' } }}
     >
       <Tabs.Screen name="dashboard" />
       <Tabs.Screen name="students" />

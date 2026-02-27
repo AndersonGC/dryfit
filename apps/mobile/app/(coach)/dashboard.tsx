@@ -8,6 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
 import { useStudents, useStudentsByDate, toLocalDateString } from '../../hooks/useWorkouts';
+import { TabTransition } from '../../components/TabTransition';
 
 export default function CoachDashboard() {
   const { user } = useAuthStore();
@@ -24,7 +25,7 @@ export default function CoachDashboard() {
   const pendingToday = todayStudents.filter((s) => s.workoutStatus === 'PENDING').length;
 
   return (
-    <View className="flex-1 bg-[#0a0a0a]">
+    <TabTransition index={0} className="flex-1 bg-[#0a0a0a]">
       {/* Status bar spacer */}
       <View className="h-14 bg-[#0a0a0a]/80" />
 
@@ -117,6 +118,6 @@ export default function CoachDashboard() {
         </View>
 
       </ScrollView>
-    </View>
+    </TabTransition>
   );
 }

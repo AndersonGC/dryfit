@@ -19,6 +19,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { useActiveWorkout, useCompleteWorkout, toLocalDateString } from '../../hooks/useWorkouts';
 import { WeekCalendar } from '../../components/WeekCalendar';
 import { useAlert } from '../../hooks/useCustomAlert';
+import { TabTransition } from '../../components/TabTransition';
 
 
 export default function StudentDashboard() {
@@ -137,7 +138,7 @@ export default function StudentDashboard() {
   };
 
   return (
-    <View className="flex-1 bg-[#0f1115]">
+    <TabTransition index={0} className="flex-1 bg-[#0f1115]">
       <View className="h-12" />
 
       <ScrollView
@@ -392,6 +393,6 @@ export default function StudentDashboard() {
           </TouchableOpacity>
         </View>
       </Modal>
-    </View>
+    </TabTransition>
   );
 }

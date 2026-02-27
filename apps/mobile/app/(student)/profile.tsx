@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
 import { useAlert } from '../../hooks/useCustomAlert';
+import { TabTransition } from '../../components/TabTransition';
 
 export default function StudentProfile() {
   const { user, logout, updateProfile } = useAuthStore();
@@ -37,7 +38,7 @@ export default function StudentProfile() {
   };
 
   return (
-    <View className="flex-1 bg-[#0f1115]">
+    <TabTransition index={4} className="flex-1 bg-[#0f1115]">
       <View className="h-14" />
       <View className="px-5">
         {/* Header */}
@@ -104,6 +105,6 @@ export default function StudentProfile() {
           <Text className="text-primary font-bold">Sair da conta</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </TabTransition>
   );
 }

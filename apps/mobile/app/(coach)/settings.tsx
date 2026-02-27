@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/auth.store';
 import { useInviteCode, useGenerateInviteCode } from '../../hooks/useWorkouts';
 import { useAlert } from '../../hooks/useCustomAlert';
+import { TabTransition } from '../../components/TabTransition';
 
 export default function CoachSettings() {
   const { user, logout } = useAuthStore();
@@ -34,7 +35,7 @@ export default function CoachSettings() {
   };
 
   return (
-    <View className="flex-1 bg-[#0a0a0a]">
+    <TabTransition index={4} className="flex-1 bg-[#0a0a0a]">
       <View className="h-14" />
       <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         <Text className="text-2xl font-extrabold text-white mb-8 tracking-tight">Configurações</Text>
@@ -106,6 +107,6 @@ export default function CoachSettings() {
           <Text className="text-primary font-bold">Sair da conta</Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </TabTransition>
   );
 }

@@ -6,6 +6,7 @@ import type { User } from '@dryfit/types';
 
 import { StudentCard } from '../../components/StudentCard';
 import { SearchBar } from '../../components/SearchBar';
+import { TabTransition } from '../../components/TabTransition';
 
 export default function CoachStudents() {
   const [search, setSearch] = useState('');
@@ -17,7 +18,7 @@ export default function CoachStudents() {
   }, [students, search]);
 
   return (
-    <View className="flex-1 bg-[#0a0a0a]">
+    <TabTransition index={1} className="flex-1 bg-[#0a0a0a]">
       <View className="h-14" />
       <View className="px-5 mb-4 flex-row items-center justify-between">
         <Text className="text-2xl font-extrabold text-white tracking-tight">Alunos</Text>
@@ -61,6 +62,6 @@ export default function CoachStudents() {
           </View>
         )}
       />
-    </View>
+    </TabTransition>
   );
 }
